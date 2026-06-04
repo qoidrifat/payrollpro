@@ -1,0 +1,469 @@
+openapi: "3.0.3"
+info:
+  title: PayrollPro — Mobile Attendance API
+  description: |
+    Mobile API untuk absensi karyawan. Digunakan oleh aplikasi mobile (Android/iOS)
+    untuk melakukan clock-in, clock-out, melihat status hari ini, dan sinkronisasi
+    offline attendance records.
+
+    ## Authentication
+
+    Semua endpoint memerlukan **Bearer Token** (Sanctum API Token).
+    Token diperoleh setelah login, dikirim via header:
+    ```
+    Authorization: Bearer {api_token}
+    ```
+
+    ## Rate Limiting
+
+    - **60 requests per minute** per user / per IP
+    - Dilacak berdasarkan `user_id` atau `ip_address`
+    - Respons `429 Too Many Requests` jika melebihi limit
+
+    ## Formats
+
+    - **Tanggal**: `YYYY-MM-DD`
+    - **Waktu**: `HH:mm:ss` (24 jam, WIB)
+    - **JSON** request/response body
+
+    ## Status Codes
+
+    | Code | Deskripsi |
+    |------|-----------|
+    | 200  | Success |
+    | 201  | Created (clock-in sukses) |
+    | 400  | Bad Request (data tidak valid / belum clock-in) |
+    | 403  | Forbidden (profil karyawan tidak ditemukan) |
+    | 422  | Unprocessable Entity (di luar area kantor / validasi gagal) |
+    | 429  | Too Many Requests (rate limit exceeded) |
+    | 500  | Internal Server Error |
+
+  version: "1.0.0"
+  contact:
+    name: PayrollPro Team
+  x-logo:
+    url: "https://payrollpro.example.com/logo.png"
+servers:
+  - url: https://payrollpro.example.com/api/mobile
+    description: Production server
+  - url: http://localhost:8080/api/mobile
+    description: Local development
+paths:
+  /status:
+    get:
+      summary: Today's Attendance Status
+      description: |
+        Mendapatkan status absensi karyawan untuk hari ini.
+        Menampilkan data clock-in/clock-out terkini.
+      tags:
+        - Attendance
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Status absensi hari ini
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  date:
+                    type: string
+                    format: date
+                    example: "2026-06-02"
+                    description: Tanggal hari ini
+                  attendance:
+                    type: object
+                    nullable: true
+                    description: Data absensi (null jika belum ada)
+                    properties:
+                      id:
+                        type: integer
+                        example: 42
+                      date:
+                        type: string
+                        format: date
+                        example: "2026-06-02"
+                      clock_in:
+                        type: string
+                        nullable: true
+                        example: "07:45:00"
+                      clock_out:
+                        type: string
+                        nullable: true
+                        example: null
+                      status:
+                        type: string
+                        enum: [present, absent, late, half_day, sick, leave]
+                        example: "present"
+                      type:
+                        type: string
+                        enum: [wfo, wfh, remote]
+                        example: "wfo"
+                      latitude:
+                        type: number
+                        nullable: true
+                        example: -7.0456
+                      longitude:
+                        type: number
+                        nullable: true
+                        example: 112.7654
+                  has_clocked_in:
+                    type: boolean
+                    example: true
+                  has_clocked_out:
+                    type: boolean
+                    example: false
+        "403":
+          description: Profil karyawan tidak ditemukan
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Profil karyawan tidak ditemukan."
+  /clock-in:
+    post:
+      summary: Clock In
+      description: |
+        Melakukan absensi masuk (clock-in) dengan data GPS dan foto selfie opsional.
+
+        **Validasi:**
+        - Posisi GPS harus berada dalam area geofence kantor
+        - Hanya satu clock-in per hari
+        - Mendeteksi keterlambatan berdasarkan shift yang dijadwalkan
+      tags:
+        - Attendance
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - latitude
+                - longitude
+              properties:
+                latitude:
+                  type: number
+                  format: float
+                  description: Latitude GPS (-90 s.d. 90)
+                  minimum: -90
+                  maximum: 90
+                  example: -7.0456
+                longitude:
+                  type: number
+                  format: float
+                  description: Longitude GPS (-180 s.d. 180)
+                  minimum: -180
+                  maximum: 180
+                  example: 112.7654
+                gps_accuracy:
+                  type: number
+                  format: float
+                  description: Akurasi GPS dalam meter (opsional)
+                  example: 5.0
+                device_info:
+                  type: string
+                  maxLength: 255
+                  description: Informasi perangkat (opsional)
+                  example: "Samsung Galaxy S24 / Android 14"
+                selfie_image:
+                  type: string
+                  format: binary
+                  description: |
+                    Foto selfie saat clock-in (opsional, max 5MB).
+                    Format: JPG, PNG.
+      responses:
+        "201":
+          description: Clock-in berhasil
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Absen masuk berhasil."
+                  attendance:
+                    $ref: "#/components/schemas/AttendanceData"
+        "200":
+          description: Sudah clock-in hari ini
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Anda sudah absen masuk hari ini."
+                  attendance:
+                    $ref: "#/components/schemas/AttendanceData"
+        "403":
+          $ref: "#/components/responses/NoEmployeeProfile"
+        "422":
+          description: Validasi gagal — di luar area kantor
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Anda berada di luar area kantor. Kantor terdekat berjarak 1250m."
+                  geo_check:
+                    $ref: "#/components/schemas/GeoCheck"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /clock-out:
+    post:
+      summary: Clock Out
+      description: |
+        Melakukan absensi pulang (clock-out) dengan data GPS.
+
+        **Validasi:**
+        - Posisi GPS harus berada dalam area geofence kantor
+        - Harus sudah clock-in hari ini
+        - Hanya satu clock-out per hari
+      tags:
+        - Attendance
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - latitude
+                - longitude
+              properties:
+                latitude:
+                  type: number
+                  format: float
+                  description: Latitude GPS (-90 s.d. 90)
+                  minimum: -90
+                  maximum: 90
+                  example: -7.0456
+                longitude:
+                  type: number
+                  format: float
+                  description: Longitude GPS (-180 s.d. 180)
+                  minimum: -180
+                  maximum: 180
+                  example: 112.7654
+                gps_accuracy:
+                  type: number
+                  format: float
+                  description: Akurasi GPS dalam meter (opsional)
+                  example: 5.0
+                device_info:
+                  type: string
+                  maxLength: 255
+                  description: Informasi perangkat (opsional)
+                  example: "Samsung Galaxy S24 / Android 14"
+      responses:
+        "200":
+          description: Clock-out berhasil
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Absen pulang berhasil."
+                  attendance:
+                    $ref: "#/components/schemas/AttendanceData"
+        "400":
+          description: Belum clock-in hari ini
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Tidak ada catatan absen masuk hari ini."
+        "403":
+          $ref: "#/components/responses/NoEmployeeProfile"
+        "422":
+          description: Validasi gagal — di luar area atau data tidak valid
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "Anda berada di luar area kantor. Kantor terdekat berjarak 1250m."
+                  geo_check:
+                    $ref: "#/components/schemas/GeoCheck"
+        "500":
+          $ref: "#/components/responses/InternalError"
+  /sync-offline:
+    post:
+      summary: Sync Offline Attendance Records
+      description: |
+        Mengirim batch catatan absensi offline yang direkam saat tidak ada koneksi internet.
+
+        **Batasan:**
+        - Maksimal 30 records per request
+        - Records akan di- upsert berdasarkan employee_id + date
+      tags:
+        - Sync
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - records
+              properties:
+                records:
+                  type: array
+                  maxItems: 30
+                  description: Array catatan absensi offline
+                  items:
+                    type: object
+                    required:
+                      - date
+                    properties:
+                      date:
+                        type: string
+                        format: date
+                        description: Tanggal absensi
+                        example: "2026-06-01"
+                      clock_in:
+                        type: string
+                        nullable: true
+                        description: Waktu clock-in (HH:mm)
+                        example: "07:30"
+                      clock_out:
+                        type: string
+                        nullable: true
+                        description: Waktu clock-out (HH:mm)
+                        example: "16:45"
+                      latitude:
+                        type: number
+                        nullable: true
+                        description: Latitude GPS
+                        example: -7.0456
+                      longitude:
+                        type: number
+                        nullable: true
+                        description: Longitude GPS
+                        example: 112.7654
+                      type:
+                        type: string
+                        enum: [wfo, wfh, remote]
+                        description: Tipe absensi
+                        default: wfo
+                      status:
+                        type: string
+                        enum: [present, absent, late, half_day, sick, leave]
+                        description: Status absensi
+                        default: present
+      responses:
+        "200":
+          description: Sinkronisasi berhasil
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "15 catatan absensi berhasil disinkronkan."
+                  synced:
+                    type: integer
+                    description: Jumlah records yang berhasil disinkronkan
+                    example: 15
+        "403":
+          $ref: "#/components/responses/NoEmployeeProfile"
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: "Sanctum Token"
+      description: "Masukkan API token yang diperoleh saat login."
+  schemas:
+    AttendanceData:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 42
+        date:
+          type: string
+          format: date
+          example: "2026-06-02"
+        clock_in:
+          type: string
+          nullable: true
+          example: "07:45:00"
+        clock_out:
+          type: string
+          nullable: true
+          example: "16:30:00"
+        status:
+          type: string
+          enum: [present, absent, late, half_day, sick, leave]
+          example: "present"
+        type:
+          type: string
+          enum: [wfo, wfh, remote]
+          example: "wfo"
+        latitude:
+          type: number
+          nullable: true
+          example: -7.0456
+        longitude:
+          type: number
+          nullable: true
+          example: 112.7654
+    GeoCheck:
+      type: object
+      properties:
+        valid:
+          type: boolean
+          example: false
+        distance:
+          type: number
+          nullable: true
+          example: 1250
+        office:
+          type: string
+          nullable: true
+          example: "Kantor Pusat Bangkalan"
+    ErrorResponse:
+      type: object
+      properties:
+        message:
+          type: string
+  responses:
+    NoEmployeeProfile:
+      description: Karyawan tidak memiliki profil employee
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            message: "Profil karyawan tidak ditemukan."
+    InternalError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+          example:
+            message: "Absen masuk gagal. Silakan coba lagi."

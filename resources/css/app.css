@@ -1,0 +1,210 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+    body {
+        @apply bg-gray-50 text-gray-900 antialiased;
+        font-family: 'Inter', sans-serif;
+    }
+
+    .dark body,
+    body.dark {
+        @apply bg-gray-950 text-gray-100;
+    }
+
+    h1, h2, h3, h4, h5, h6 {
+        font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+}
+
+@layer components {
+    .glass-card {
+        @apply bg-white/80 backdrop-blur-md border border-white/20 shadow-glass rounded-2xl;
+    }
+
+    .dark .glass-card {
+        @apply bg-gray-900/80 backdrop-blur-md border border-gray-800/50 shadow-glass rounded-2xl;
+    }
+
+    .card-accent-indigo {
+        @apply relative overflow-hidden;
+    }
+    .card-accent-indigo::before {
+        content: '';
+        @apply absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-indigo-500 to-purple-500;
+    }
+
+    .card-accent-emerald {
+        @apply relative overflow-hidden;
+    }
+    .card-accent-emerald::before {
+        content: '';
+        @apply absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-500 to-teal-500;
+    }
+
+    .stat-card {
+        @apply glass-card p-6 transition-all duration-300 hover:shadow-card-hover;
+    }
+
+    .table-container {
+        @apply glass-card overflow-hidden;
+    }
+
+    .badge {
+        @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+    }
+
+    .btn {
+        @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed;
+    }
+
+    .btn-primary {
+        @apply btn bg-primary-600 text-white hover:bg-primary-700 focus:ring-primary-500 shadow-sm hover:shadow-md;
+    }
+
+    .btn-secondary {
+        @apply btn bg-gray-100 text-gray-700 hover:bg-gray-200 focus:ring-gray-500 dark:bg-gray-800 dark:text-gray-200 dark:hover:bg-gray-700;
+    }
+
+    .btn-danger {
+        @apply btn bg-red-600 text-white hover:bg-red-700 focus:ring-red-500;
+    }
+
+    .form-input {
+        @apply w-full rounded-xl border-gray-200 bg-white px-4 py-2.5 text-sm shadow-sm transition-colors focus:border-primary-500 focus:ring-primary-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-100;
+    }
+
+    .form-label {
+        @apply block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5;
+    }
+
+    .form-error {
+        @apply mt-1 text-sm text-red-600 dark:text-red-400;
+    }
+
+    .btn-ghost {
+        @apply btn bg-transparent text-gray-600 hover:bg-gray-100 focus:ring-gray-500 dark:text-gray-400 dark:hover:bg-gray-800;
+    }
+
+    .page-header {
+        @apply mb-6;
+    }
+
+    .skeleton {
+        @apply animate-pulse bg-gray-200 dark:bg-gray-700 rounded-lg;
+    }
+}
+
+@layer utilities {
+    /* Loading Screen Animations */
+    @keyframes ping-slow {
+        0%, 100% { transform: scale(1); opacity: 0.3; }
+        50% { transform: scale(1.5); opacity: 0.1; }
+    }
+
+    @keyframes pulse-scale {
+        0%, 100% { transform: scale(1); opacity: 0.4; }
+        50% { transform: scale(1.15); opacity: 0.6; }
+    }
+
+    @keyframes logo-breathe {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.08); }
+    }
+
+    @keyframes loading-bar {
+        0% { width: 0%; margin-left: 0; }
+        30% { width: 40%; margin-left: 0; }
+        60% { width: 60%; margin-left: 20%; }
+        100% { width: 100%; margin-left: 0; }
+    }
+
+    @keyframes pulse-slow {
+        0%, 100% { opacity: 0.5; }
+        50% { opacity: 0.8; }
+    }
+
+    .animate-ping-slow {
+        animation: ping-slow 2s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+    }
+
+    .animate-pulse-scale {
+        animation: pulse-scale 1.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+    }
+
+    .animate-logo-breathe {
+        animation: logo-breathe 2.5s ease-in-out infinite;
+    }
+
+    .animate-loading-bar {
+        animation: loading-bar 1.8s ease-in-out infinite;
+    }
+
+    .animate-pulse-slow {
+        animation: pulse-slow 2s ease-in-out infinite;
+    }
+
+    /* Scrollbar — adapts to system theme (light/dark) */
+    :root {
+        --scrollbar-thumb: #d1d5db;
+        --scrollbar-track: transparent;
+        --scrollbar-thumb-hover: #9ca3af;
+    }
+
+    .dark {
+        --scrollbar-thumb: #4b5563;
+        --scrollbar-track: transparent;
+        --scrollbar-thumb-hover: #6b7280;
+    }
+
+    /* Global scrollbar (whole page) */
+    html {
+        scrollbar-width: thin;
+        scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+    }
+
+    html::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+    }
+
+    html::-webkit-scrollbar-track {
+        background: var(--scrollbar-track);
+    }
+
+    html::-webkit-scrollbar-thumb {
+        background-color: var(--scrollbar-thumb);
+        border-radius: 4px;
+    }
+
+    html::-webkit-scrollbar-thumb:hover {
+        background-color: var(--scrollbar-thumb-hover);
+    }
+
+    /* Utility class for inner scrollable containers */
+    .scrollbar-thin {
+        scrollbar-width: thin;
+        scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+    }
+
+    .scrollbar-thin::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+    }
+
+    .scrollbar-thin::-webkit-scrollbar-track {
+        background: var(--scrollbar-track);
+    }
+
+    .scrollbar-thin::-webkit-scrollbar-thumb {
+        background-color: var(--scrollbar-thumb);
+        border-radius: 3px;
+    }
+
+    .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+        background-color: var(--scrollbar-thumb-hover);
+    }
+}

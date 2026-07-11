@@ -67,6 +67,7 @@ jobs:
         env:
           MYSQL_DATABASE: project_kp_testing
           MYSQL_ROOT_PASSWORD: root
+          MYSQL_ROOT_HOST: '%'
         ports:
           - 3306:3306
         options: >-

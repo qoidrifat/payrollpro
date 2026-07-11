@@ -114,13 +114,21 @@ jobs:
       - name: Configure MySQL auth plugin
         run: |
           echo "🔧 Configuring MySQL 8.0 auth plugin for PHP PDO compatibility..."
-          # MySQL 8.0+ defaults to caching_sha2_password, but PHP PDO MySQL
-          # via mysqlnd needs mysql_native_password. The ALTER USER switches
-          # the root@'%' user (created by MYSQL_ROOT_HOST) to the compatible
-          # plugin. The health check above guarantees MySQL is accepting
-          # connections before we reach this step.
-          mysql -h127.0.0.1 -uroot -proot -e \
-            "ALTER USER 'root'@'%' IDENTIFIED WITH mysql_native_password BY 'root'; FLUSH PRIVILEGES;"
+          # MySQL 8.0+ defaults to caching_sha2_password, but PHP's PDO MySQL
+          # (mysqlnd) needs mysql_native_password. The steps below:
+          # 1. Waits for MySQL to be ready (health check already does this)
+          # 2. Creates root@'%' if MYSQL_ROOT_HOST didn't create it
+          # 3. Grants all privileges to root@'%'
+          # 4. Switches auth plugin to mysql_native_password
+          #
+          # The mysql CLI supports caching_sha2_password, so it can connect
+          # even before the ALTER USER runs.
+          mysql -h127.0.0.1 -uroot -proot <<SQL
+          CREATE USER IF NOT EXISTS 'root'@'%' IDENTIFIED BY 'root';
+          GRANT ALL ON *.* TO 'root'@'%' WITH GRANT OPTION;
+          ALTER USER 'root'@'%' IDENTIFIED WITH mysql_native_password BY 'root';
+          FLUSH PRIVILEGES;
+SQL
           echo "✅ MySQL auth plugin configured: mysql_native_password"
 
       - name: Run migrations

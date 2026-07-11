@@ -82,11 +82,14 @@ jobs:
       - name: Install Composer dependencies
         run: composer install --no-progress --prefer-dist --no-interaction
 
-      - name: Copy .env
-        run: cp .env.example .env
-
-      - name: Generate App Key
-        run: php artisan key:generate --force
+      - name: Setup environment
+        run: |
+          cp .env.example .env
+          # Override Redis defaults — CI runner has no Redis
+          sed -i 's/SESSION_DRIVER=redis/SESSION_DRIVER=array/' .env
+          sed -i 's/CACHE_STORE=redis/CACHE_STORE=array/' .env
+          sed -i 's/QUEUE_CONNECTION=redis/QUEUE_CONNECTION=sync/' .env
+          php artisan key:generate --force
 
       - name: Run migrations
         run: php artisan migrate --force

@@ -67,6 +67,7 @@ jobs:
         env:
           MYSQL_DATABASE: project_kp_testing
           MYSQL_ROOT_PASSWORD: root
+          MYSQL_ROOT_HOST: '%'
         ports:
           - 3306:3306
         options: >-
@@ -109,6 +110,18 @@ jobs:
           sed -i 's/CACHE_STORE=database/CACHE_STORE=array/' .env
           sed -i 's/QUEUE_CONNECTION=database/QUEUE_CONNECTION=sync/' .env
           php artisan key:generate --force
+
+      - name: Configure MySQL auth plugin
+        run: |
+          echo "🔧 Configuring MySQL 8.0 auth plugin for PHP PDO compatibility..."
+          # MySQL 8.0+ defaults to caching_sha2_password, but PHP PDO MySQL
+          # via mysqlnd needs mysql_native_password. The ALTER USER switches
+          # the root@'%' user (created by MYSQL_ROOT_HOST) to the compatible
+          # plugin. The health check above guarantees MySQL is accepting
+          # connections before we reach this step.
+          mysql -h127.0.0.1 -uroot -proot -e \
+            "ALTER USER 'root'@'%' IDENTIFIED WITH mysql_native_password BY 'root'; FLUSH PRIVILEGES;"
+          echo "✅ MySQL auth plugin configured: mysql_native_password"
 
       - name: Run migrations
         run: php artisan migrate --env=testing --force

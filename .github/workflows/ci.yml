@@ -66,8 +66,6 @@ jobs:
         image: mysql:8.0
         env:
           MYSQL_DATABASE: project_kp_testing
-          MYSQL_USER: testing
-          MYSQL_PASSWORD: testing
           MYSQL_ROOT_PASSWORD: root
         ports:
           - 3306:3306
@@ -105,8 +103,8 @@ jobs:
           sed -i 's/# DB_HOST=127.0.0.1/DB_HOST=127.0.0.1/' .env
           sed -i 's/# DB_PORT=3306/DB_PORT=3306/' .env
           sed -i 's/# DB_DATABASE=laravel/DB_DATABASE=project_kp_testing/' .env
-          sed -i 's/# DB_USERNAME=root/DB_USERNAME=testing/' .env
-          sed -i 's/# DB_PASSWORD=/DB_PASSWORD=testing/' .env
+          sed -i 's/# DB_USERNAME=root/DB_USERNAME=root/' .env
+          sed -i 's/# DB_PASSWORD=/DB_PASSWORD=root/' .env
           sed -i 's/SESSION_DRIVER=database/SESSION_DRIVER=array/' .env
           sed -i 's/CACHE_STORE=database/CACHE_STORE=array/' .env
           sed -i 's/QUEUE_CONNECTION=database/QUEUE_CONNECTION=sync/' .env
@@ -140,13 +138,31 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: mbstring, xml
+          tools: composer:v2
+          coverage: none
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@v4
+        with:
+          path: vendor
+          key: composer-${{ hashFiles('composer.lock') }}
+          restore-keys: composer-
+
+      - name: Install Composer dependencies
+        run: composer install --no-progress --prefer-dist --no-interaction
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
 
-      - name: Install dependencies
+      - name: Install Node dependencies
         run: npm ci
 
       - name: Lint

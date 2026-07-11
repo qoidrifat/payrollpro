@@ -9,9 +9,14 @@ use App\Models\ShiftAssignment;
 use App\Scopes\TenantScope;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
 
 class ShiftService
 {
+    public function __construct(
+        private readonly AttendanceOperationalHours $operationalHours,
+    ) {}
+
     /**
      * Auto-assign shifts for all active employees on a given date.
      * Uses employee's current rotation or falls back to default shift.
@@ -24,10 +29,6 @@ class ShiftService
             return 0; // Skip holidays
         }
 
-        $employees = Employee::active()
-            ->when($companyId, fn($q) => $q->where('company_id', $companyId))
-            ->get();
-
         $shifts = Shift::active()
             ->when($companyId, fn($q) => $q->where('company_id', $companyId))
             ->get();
@@ -36,25 +37,49 @@ class ShiftService
             return 0;
         }
 
+        // Only load employees that don't already have an assignment for this date
+        $existingIds = ShiftAssignment::forDate($date)
+            ->where('company_id', $companyId)
+            ->pluck('employee_id');
+
+        $employees = Employee::active()
+            ->select(['id', 'company_id', 'first_name', 'last_name'])
+            ->when($companyId, fn($q) => $q->where('company_id', $companyId))
+            ->whereNotIn('id', $existingIds)
+            ->get();
+
+        if ($employees->isEmpty()) {
+            return 0;
+        }
+
         $assigned = 0;
+        $assignments = [];
 
         foreach ($employees as $employee) {
-            // Check existing assignment
-            if (ShiftAssignment::forEmployee($employee->id)->forDate($date)->exists()) {
-                continue;
-            }
-
             $shift = $this->resolveEmployeeShift($employee, $shifts, $date);
 
             if ($shift) {
-                ShiftAssignment::create([
+                $assignments[] = [
                     'company_id'  => $companyId,
                     'employee_id' => $employee->id,
                     'shift_id'    => $shift->id,
                     'date'        => $date,
-                ]);
+                    'created_at'  => now(),
+                    'updated_at'  => now(),
+                ];
                 $assigned++;
+
+                // Batch insert every 50 records
+                if (count($assignments) >= 50) {
+                    ShiftAssignment::insert($assignments);
+                    $assignments = [];
+                }
             }
+        }
+
+        // Insert remaining batch
+        if (! empty($assignments)) {
+            ShiftAssignment::insert($assignments);
         }
 
         return $assigned;
@@ -100,10 +125,12 @@ class ShiftService
 
         $rotationDays = $sortedShifts->first()->rotation_days ?? 7;
 
-        // Use employee ID + date as seed for rotation calculation
+        // Use employee ID + date as seed for rotation calculation.
+        // Count continuous days since the Unix epoch (NOT day-of-year, which
+        // resets to 0 every 1 Jan and would restart the rotation each year).
         $dateObj = Carbon::parse($date);
-        $dayOfYear = (int) $dateObj->format('z');
-        $rotationIndex = (int) floor($dayOfYear / $rotationDays);
+        $epochDays = intdiv($dateObj->copy()->startOfDay()->getTimestamp(), 86400);
+        $rotationIndex = intdiv($epochDays, max(1, $rotationDays));
 
         $shiftIndex = ($employee->id + $rotationIndex) % $shiftCount;
 
@@ -171,7 +198,7 @@ class ShiftService
      */
     public function isLateForShift(Employee $employee, string $clockInTime): bool
     {
-        $today = now()->toDateString();
+        $today = $this->operationalHours->now()->toDateString();
         $assignment = ShiftAssignment::forEmployee($employee->id)
             ->forDate($today)
             ->with('shift')
@@ -199,7 +226,7 @@ class ShiftService
     public function todayRoster(?int $companyId = null): array
     {
         $companyId ??= TenantScope::currentCompanyId();
-        $today = now()->toDateString();
+        $today = $this->operationalHours->now()->toDateString();
 
         return ShiftAssignment::with(['employee', 'shift'])
             ->when($companyId, fn($q) => $q->where('company_id', $companyId))

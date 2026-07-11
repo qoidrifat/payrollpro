@@ -33,19 +33,43 @@ class PayrollController extends Controller
         Gate::authorize('viewAny', Payroll::class);
 
         $employeeId = $this->getEmployeeIdIfScoped();
+        $sort = match ($request->string('sort')->toString()) {
+            'name' => 'name',
+            'period', 'period_start', 'period_end' => 'period_end',
+            'status' => 'status',
+            'total_employees' => 'total_employees',
+            'total_net', 'total_net_formatted' => 'total_net',
+            default => 'created_at',
+        };
+        $dir = $request->string('dir')->toString() === 'asc' ? 'asc' : 'desc';
 
         $payrolls = Payroll::query()
+            ->select([
+                'id',
+                'company_id',
+                'name',
+                'period_start',
+                'period_end',
+                'status',
+                'total_net',
+                'total_employees',
+                'progress_percentage',
+                'current_batch',
+                'total_batches',
+                'created_at',
+                'updated_at',
+            ])
             ->when($employeeId, fn($q) => $q->whereHas('items', fn($q) => $q->where('employee_id', $employeeId)))
             ->when($request->status, fn($q, $s) => $q->where('status', $s))
-            ->when($request->date_from, fn($q, $d) => $q->whereDate('period_end', '>=', $d))
-            ->when($request->date_to, fn($q, $d) => $q->whereDate('period_end', '<=', $d))
-            ->latest()
+            ->when($request->date_from, fn($q, $d) => $q->where('period_end', '>=', $d))
+            ->when($request->date_to, fn($q, $d) => $q->where('period_end', '<=', $d))
+            ->orderBy($sort, $dir)
             ->paginate(15)
             ->withQueryString();
 
         return Inertia::render('Payroll/Index', [
             'payrolls' => $payrolls,
-            'filters' => $request->only(['status', 'date_from', 'date_to']),
+            'filters' => $request->only(['status', 'date_from', 'date_to', 'sort', 'dir']),
         ]);
     }
 
@@ -90,7 +114,12 @@ class PayrollController extends Controller
 
         $employeeId = $this->getEmployeeIdIfScoped();
 
-        $payroll->load(['items.employee', 'processedBy', 'approvedBy']);
+        $payroll->load([
+            'items:id,payroll_id,employee_id,gross_salary,bpjs_kesehatan_employee,bpjs_tk_jht_employee,bpjs_tk_jp_employee,pph21,deductions_total,net_salary,calculation_details,notes',
+            'items.employee:id,company_id,first_name,last_name,position,department',
+            'processedBy:id,name,email',
+            'approvedBy:id,name,email',
+        ]);
 
         // Scope items to employee if needed
         if ($employeeId) {

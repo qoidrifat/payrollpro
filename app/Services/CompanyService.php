@@ -3,11 +3,15 @@
 namespace App\Services;
 
 use App\Models\Company;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Schema;
 
 class CompanyService
 {
+    private const CACHE_TTL_SECONDS = 600;
+
     /**
      * Has the companies table been created yet?
      */
@@ -20,10 +24,42 @@ class CompanyService
     private function hasTable(): bool
     {
         if (!$this->tableChecked) {
-            $this->tableExists = Schema::hasTable('companies');
+            $this->tableExists = Cache::store('file')->remember(
+                'schema:companies_table_exists',
+                self::CACHE_TTL_SECONDS,
+                fn () => Schema::hasTable('companies')
+            );
             $this->tableChecked = true;
         }
         return $this->tableExists;
+    }
+
+    /**
+     * Resolve only the company id for hot-path middleware.
+     */
+    public function resolveId(): ?int
+    {
+        if ($sessionId = session('current_company_id')) {
+            return (int) $sessionId;
+        }
+
+        if ($companyId = Auth::user()?->company_id) {
+            return (int) $companyId;
+        }
+
+        if (!Auth::check()) {
+            return null;
+        }
+
+        if (!$this->hasTable()) {
+            return null;
+        }
+
+        return Cache::store('file')->remember(
+            'companies:default_active_id',
+            self::CACHE_TTL_SECONDS,
+            fn () => Company::where('is_active', true)->value('id')
+        );
     }
 
     /**
@@ -34,31 +70,33 @@ class CompanyService
      */
     public function resolve(): ?Company
     {
-        if (!$this->hasTable()) {
+        $companyId = $this->resolveId();
+
+        if (!$companyId) {
             return null;
         }
 
-        // Session override (admin switching companies)
-        if ($sessionId = session('current_company_id')) {
-            return Company::find($sessionId);
-        }
-
-        // User's assigned company
-        if ($companyId = Auth::user()?->company_id) {
-            return Company::find($companyId);
-        }
-
-        // Fallback to first active company
-        return Company::where('is_active', true)->first();
+        return Company::find($companyId);
     }
 
     /**
-     * Set the current company context (for admin company switching).
+     * Set the current company context.
+     *
+     * Tenant isolation: each user is linked to exactly one company
+     * (users.company_id) — there is no cross-company membership — so a user
+     * may only activate the company they belong to. Attempting to switch to
+     * any other company is an authorization failure, not a silent no-op.
      */
     public function switchTo(int $companyId): void
     {
         if (!$this->hasTable()) {
             return;
+        }
+
+        $user = Auth::user();
+
+        if (!$user || (int) $user->company_id !== $companyId) {
+            throw new AuthorizationException('Anda tidak memiliki akses ke perusahaan tersebut.');
         }
 
         session(['current_company_id' => $companyId]);
@@ -83,10 +121,14 @@ class CompanyService
             return [];
         }
 
-        return Company::where('is_active', true)
-            ->orderBy('name')
-            ->get()
-            ->toArray();
+        return Cache::store('file')->remember(
+            'companies:active:list',
+            self::CACHE_TTL_SECONDS,
+            fn () => Company::where('is_active', true)
+                ->orderBy('name')
+                ->get()
+                ->toArray()
+        );
     }
 
     /**
@@ -97,10 +139,9 @@ class CompanyService
      */
     public function register(): void
     {
-        $company = $this->resolve();
-        $companyId = $company?->id;
+        $companyId = $this->resolveId();
 
         app()->instance('current_company_id', $companyId);
-        app()->instance('current_company', $company);
+        app()->instance('current_company', null);
     }
 }

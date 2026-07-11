@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Models\Employee;
 use Illuminate\Foundation\Http\FormRequest;
 
 class StoreEmployeeRequest extends FormRequest
@@ -11,12 +12,27 @@ class StoreEmployeeRequest extends FormRequest
         return $this->user() !== null;
     }
 
+    protected function prepareForValidation(): void
+    {
+        $this->merge([
+            'nik_hash' => Employee::hashNik($this->input('nik')),
+        ]);
+    }
+
     public function rules(): array
     {
         return [
             'first_name' => ['required', 'string', 'max:100'],
             'last_name' => ['nullable', 'string', 'max:100'],
-            'nik' => ['required', 'digits:16', 'unique:employees,nik'],
+            'nik' => [
+                'required',
+                'digits:16',
+                function (string $attribute, mixed $value, \Closure $fail) {
+                    if (Employee::withoutGlobalScope('tenant')->where('nik_hash', Employee::hashNik($value))->exists()) {
+                        $fail('NIK sudah terdaftar dalam sistem.');
+                    }
+                },
+            ],
             'npwp' => ['nullable', 'digits:16'],
             'gender' => ['required', 'in:male,female'],
             'position' => ['required', 'string', 'max:100'],
@@ -43,7 +59,6 @@ class StoreEmployeeRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'nik.unique' => 'NIK sudah terdaftar dalam sistem.',
             'nik.digits' => 'NIK harus 16 digit.',
             'npwp.digits' => 'NPWP harus 16 digit.',
             'base_salary.min' => 'Gaji pokok tidak boleh negatif.',

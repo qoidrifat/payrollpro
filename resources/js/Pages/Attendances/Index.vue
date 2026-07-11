@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from 'vue';
+import { computed, onMounted, onUnmounted, ref } from 'vue';
 import { Link, router, usePage } from '@inertiajs/vue3';
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue';
 import PageHeader from '@/Components/PageHeader.vue';
@@ -7,6 +7,7 @@ import DataTable from '@/Components/DataTable.vue';
 import Badge from '@/Components/Badge.vue';
 import Modal from '@/Components/Modal.vue';
 import ConfirmDialog from '@/Components/ConfirmDialog.vue';
+import { useSupabaseRealtime } from '@/composables/useSupabaseRealtime';
 import { PlusIcon, PencilIcon, TrashIcon, FunnelIcon } from '@heroicons/vue/24/outline';
 
 const page = usePage();
@@ -17,6 +18,23 @@ const filters = page.props.filters || {};
 const showBulkModal = ref(false);
 const showDeleteDialog = ref(false);
 const attendanceToDelete = ref(null);
+let realtimeUnsubscribe = null;
+let realtimeReloadTimer = null;
+const realtime = useSupabaseRealtime();
+
+const realtimeStatusLabel = computed(() => {
+    if (!realtime.isConfigured) return 'Realtime nonaktif';
+    if (realtime.status.value === 'SUBSCRIBED') return 'Realtime aktif';
+    if (['CHANNEL_ERROR', 'TIMED_OUT', 'CLOSED'].includes(realtime.status.value)) return 'Realtime terputus';
+    return 'Menghubungkan realtime';
+});
+
+const realtimeStatusClass = computed(() => {
+    if (!realtime.isConfigured) return 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400';
+    if (realtime.status.value === 'SUBSCRIBED') return 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300';
+    if (['CHANNEL_ERROR', 'TIMED_OUT', 'CLOSED'].includes(realtime.status.value)) return 'bg-rose-50 text-rose-700 dark:bg-rose-950 dark:text-rose-300';
+    return 'bg-amber-50 text-amber-700 dark:bg-amber-950 dark:text-amber-300';
+});
 
 const selectedMonth = ref(filters.month || '');
 
@@ -90,9 +108,34 @@ const submitBulk = () => {
     });
 };
 
+const refreshAttendanceList = () => {
+    if (realtimeReloadTimer) clearTimeout(realtimeReloadTimer);
+
+    realtimeReloadTimer = setTimeout(() => {
+        router.reload({
+            only: ['attendances', 'total', 'availableMonths'],
+            preserveScroll: true,
+            preserveState: true,
+        });
+    }, 500);
+};
+
+onMounted(() => {
+    realtimeUnsubscribe = realtime.subscribeToNotifications({
+        channelName: 'project-kp-attendances',
+        topics: ['attendance'],
+        onChange: refreshAttendanceList,
+    });
+});
+
+onUnmounted(() => {
+    if (realtimeReloadTimer) clearTimeout(realtimeReloadTimer);
+    if (realtimeUnsubscribe) realtimeUnsubscribe();
+});
+
 const columns = [
     { key: 'date', label: 'Tanggal' },
-    { key: 'employee_name', label: 'Karyawan' },
+    { key: 'employee_name', label: 'Karyawan', sortable: false },
     { key: 'status', label: 'Status' },
     { key: 'type', label: 'Tipe' },
     { key: 'clock_in', label: 'Absen Masuk' },
@@ -146,6 +189,9 @@ const columns = [
                 </button>
                 <div class="text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap border-l border-gray-200 dark:border-gray-700 pl-3">
                     Total: <strong>{{ totalRecords }}</strong>
+                </div>
+                <div :class="['inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold whitespace-nowrap', realtimeStatusClass]">
+                    {{ realtimeStatusLabel }}
                 </div>
             </template>
             <template #cell-employee_name="{ row }">

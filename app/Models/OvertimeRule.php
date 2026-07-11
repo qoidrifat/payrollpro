@@ -3,12 +3,13 @@
 namespace App\Models;
 
 use App\Enums\OvertimeType;
+use App\Traits\BelongsToCompany;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class OvertimeRule extends Model
 {
-    use HasFactory;
+    use BelongsToCompany, HasFactory;
 
     protected $fillable = [
         'company_id', 'overtime_type', 'name',
@@ -29,11 +30,6 @@ class OvertimeRule extends Model
             'requires_approval'           => 'boolean',
             'is_active'                   => 'boolean',
         ];
-    }
-
-    public function company()
-    {
-        return $this->belongsTo(Company::class);
     }
 
     public function scopeActive($query)

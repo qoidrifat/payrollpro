@@ -61,8 +61,15 @@ const columns = [
 
         <DataTable
             :columns="columns"
-            :rows="employees.data.map(e => ({ ...e, full_name: e.first_name + ' ' + (e.last_name ?? '') }))"
+            :rows="employees.data.map(e => ({ ...e, full_name: [e.first_name, e.last_name].filter(Boolean).join(' ') }))"
             search-placeholder="Cari berdasarkan nama, NIK, atau jabatan..."
+            :server-side="true"
+            :total="employees.total"
+            :current-page="employees.current_page"
+            :last-page="employees.last_page"
+            :per-page="employees.per_page"
+            :filters="filters"
+            base-route="/employees"
             @row-click="(row) => router.get(`/employees/${row.id}`)"
         >
             <template #cell-full_name="{ row }">

@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests;
 
+use App\Models\Employee;
 use Illuminate\Foundation\Http\FormRequest;
 
 class UpdateEmployeeRequest extends FormRequest
@@ -11,6 +12,13 @@ class UpdateEmployeeRequest extends FormRequest
         return $this->user() !== null;
     }
 
+    protected function prepareForValidation(): void
+    {
+        $this->merge([
+            'nik_hash' => Employee::hashNik($this->input('nik')),
+        ]);
+    }
+
     public function rules(): array
     {
         $employeeId = $this->route('employee')?->id ?? $this->route('employee');
@@ -18,7 +26,20 @@ class UpdateEmployeeRequest extends FormRequest
         return [
             'first_name' => ['required', 'string', 'max:100'],
             'last_name' => ['nullable', 'string', 'max:100'],
-            'nik' => ['required', 'digits:16', 'unique:employees,nik,' . $employeeId],
+            'nik' => [
+                'required',
+                'digits:16',
+                function (string $attribute, mixed $value, \Closure $fail) use ($employeeId) {
+                    $exists = Employee::withoutGlobalScope('tenant')
+                        ->where('nik_hash', Employee::hashNik($value))
+                        ->whereKeyNot($employeeId)
+                        ->exists();
+
+                    if ($exists) {
+                        $fail('NIK sudah terdaftar dalam sistem.');
+                    }
+                },
+            ],
             'npwp' => ['nullable', 'digits:16'],
             'gender' => ['required', 'in:male,female'],
             'position' => ['required', 'string', 'max:100'],
@@ -47,7 +68,6 @@ class UpdateEmployeeRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'nik.unique' => 'NIK sudah terdaftar dalam sistem.',
             'nik.digits' => 'NIK harus 16 digit.',
             'base_salary.min' => 'Gaji pokok tidak boleh negatif.',
         ];

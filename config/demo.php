@@ -8,9 +8,9 @@
  */
 return [
 
-    'email'    => env('DEMO_EMAIL', 'demo@payrollpro.test'),
-    'password' => env('DEMO_PASSWORD', 'demo2025'),
-    'name'     => env('DEMO_NAME', 'Demo User'),
+    'email' => env('DEMO_EMAIL'),
+    'password' => env('DEMO_PASSWORD'),
+    'name' => env('DEMO_NAME', 'Demo User'),
 
     'rate_limit' => [
         'attempts' => (int) env('DEMO_RATE_LIMIT', 3),

@@ -23,6 +23,12 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // ─── Trust Render & other proxies for HTTPS ──────────────────
+        // Render terminates SSL at their edge, then forwards requests to
+        // our container over HTTP. Laravel needs to trust these proxies
+        // so generated URLs use https:// instead of http://.
+        $middleware->trustProxies(at: '*');
+
         $middleware->web(append: [
             ResolveTenant::class,
             HandleInertiaRequests::class,

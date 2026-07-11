@@ -30,6 +30,7 @@ const summary = computed(() => page.props.summary || {
 })
 
 const payrolls = computed(() => page.props.payrolls || { data: [] })
+const filters = computed(() => page.props.filters || {})
 
 const formatCurrency = (value) =>
     new Intl.NumberFormat('id-ID', {
@@ -133,6 +134,13 @@ const applyFilter = () => {
                     :columns="columns"
                     :rows="rows"
                     search-placeholder="Cari penggajian..."
+                    :server-side="true"
+                    :total="payrolls.total"
+                    :current-page="payrolls.current_page"
+                    :last-page="payrolls.last_page"
+                    :per-page="payrolls.per_page"
+                    :filters="filters"
+                    base-route="/reports/payroll"
                 >
                     <template #cell-status="{ value }">
                         <Badge :variant="statusVariant(value)">{{ value }}</Badge>

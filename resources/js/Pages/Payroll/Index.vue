@@ -11,6 +11,7 @@ import { PlusIcon, EyeIcon, TrashIcon } from '@heroicons/vue/24/outline'
 
 const page = usePage()
 const payrolls = page.props.payrolls || { data: [], meta: {} }
+const filters = page.props.filters || {}
 
 const formatCurrency = (value) =>
     new Intl.NumberFormat('id-ID', {
@@ -43,7 +44,8 @@ const rows = computed(() =>
         ...p,
         period: `${p.period_start} — ${p.period_end}`,
         total_net_formatted: formatCurrency(p.total_net ?? 0),
-        status: `<span class="badge bg-${statusVariant(p.status)}">${p.status}</span>`,
+        // Keep status as the raw value — rendered safely via the Badge
+        // component in the #cell-status slot (text interpolation escapes it).
     }))
 )
 
@@ -86,9 +88,16 @@ const deletePayroll = () => {
                     :columns="columns"
                     :rows="rows"
                     search-placeholder="Cari penggajian..."
+                    :server-side="true"
+                    :total="payrolls.total"
+                    :current-page="payrolls.current_page"
+                    :last-page="payrolls.last_page"
+                    :per-page="payrolls.per_page"
+                    :filters="filters"
+                    base-route="/payroll"
                 >
                     <template #cell-status="{ value }">
-                        <span v-html="value"></span>
+                        <Badge :variant="statusVariant(value)">{{ value }}</Badge>
                     </template>
                     <template #cell-actions="{ row }">
                         <div class="flex items-center gap-2">
@@ -124,30 +133,6 @@ const deletePayroll = () => {
                     </template>
                 </EmptyState>
 
-                <!-- Pagination -->
-                <div
-                    v-if="payrolls.meta && payrolls.meta.total > 0"
-                    class="flex items-center justify-between p-6 border-t border-gray-200 dark:border-gray-700"
-                >
-                    <p class="text-sm text-gray-500 dark:text-gray-400">
-                        Menampilkan {{ payrolls.meta.from || 0 }} sampai {{ payrolls.meta.to || 0 }} dari {{ payrolls.meta.total }} hasil
-                    </p>
-                    <div class="flex gap-2" v-if="payrolls.meta.links">
-                        <button
-                            v-for="link in payrolls.meta.links"
-                            :key="link.label"
-                            :disabled="!link.url || link.active"
-                            :class="[
-                                'px-3 py-1.5 text-sm rounded-lg transition-colors',
-                                link.active ? 'bg-primary-600 text-white' : link.url
-                                    ? 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800'
-                                    : 'text-gray-300 dark:text-gray-600 cursor-not-allowed',
-                            ]"
-                            v-html="link.label"
-                            @click="link.url && router.visit(link.url)"
-                        ></button>
-                    </div>
-                </div>
             </div>
 
         <ConfirmDialog

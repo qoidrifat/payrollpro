@@ -7,6 +7,7 @@ use App\Models\Attendance;
 use App\Models\Employee;
 use App\Models\LeaveRequest;
 use App\Models\PayrollItem;
+use Carbon\CarbonImmutable;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
 use Inertia\Inertia;
@@ -19,7 +20,9 @@ class EmployeePortalController extends Controller
      */
     public function dashboard(): Response
     {
-        $employee = auth()->user()->employee;
+        $employee = auth()->user()->employee()
+            ->select(['id', 'company_id', 'user_id', 'first_name', 'last_name', 'position', 'department'])
+            ->first();
 
         if (!$employee) {
             return Inertia::render('Portal/Dashboard', [
@@ -34,10 +37,12 @@ class EmployeePortalController extends Controller
             'employee'         => $employee,
             'todayAttendance'  => Attendance::where('employee_id', $employee->id)
                 ->whereDate('date', $today)
+                ->select(['id', 'employee_id', 'date', 'clock_in', 'clock_out', 'status'])
                 ->first(),
             'pendingLeaves'    => LeaveRequest::byEmployee($employee->id)->pending()->count(),
             'recentPayslips'   => PayrollItem::where('employee_id', $employee->id)
-                ->with(['payroll', 'payslip'])
+                ->select(['id', 'payroll_id', 'employee_id', 'gross_salary', 'net_salary', 'created_at'])
+                ->with(['payroll:id,name', 'payslip:id,payroll_item_id,payslip_number'])
                 ->latest()
                 ->take(3)
                 ->get()
@@ -56,12 +61,11 @@ class EmployeePortalController extends Controller
     public function attendanceHistory(Request $request): Response
     {
         $employee = $this->currentEmployeeOrAbort();
+        $monthRange = $request->month ? $this->monthRange($request->month) : null;
 
         $attendances = Attendance::where('employee_id', $employee->id)
-            ->when($request->month, fn($q, $m) => $q
-                ->whereMonth('date', substr($m, 5, 2))
-                ->whereYear('date', substr($m, 0, 4))
-            )
+            ->select(['id', 'employee_id', 'date', 'clock_in', 'clock_out', 'status', 'type', 'notes', 'created_at'])
+            ->when($monthRange, fn($q, $range) => $q->whereBetween('date', $range))
             ->latest('date')
             ->paginate(31);
 
@@ -79,7 +83,19 @@ class EmployeePortalController extends Controller
         $employee = $this->currentEmployeeOrAbort();
 
         $payrollItems = PayrollItem::where('employee_id', $employee->id)
-            ->with(['payroll', 'payslip'])
+            ->select([
+                'id',
+                'payroll_id',
+                'employee_id',
+                'gross_salary',
+                'bpjs_kesehatan_employee',
+                'bpjs_tk_jht_employee',
+                'bpjs_tk_jp_employee',
+                'net_salary',
+                'pph21',
+                'created_at',
+            ])
+            ->with(['payroll:id,name,period_start,period_end,status', 'payslip:id,payroll_item_id,payslip_number'])
             ->latest()
             ->paginate(12);
 
@@ -96,17 +112,18 @@ class EmployeePortalController extends Controller
     {
         $employee = $this->currentEmployeeOrAbort();
 
-        $yearlyItems = PayrollItem::where('employee_id', $employee->id)
-            ->whereYear('created_at', date('Y'))
-            ->get();
+        $yearStart = now()->startOfYear();
+        $yearEnd = now()->endOfYear();
+        $yearlySummary = PayrollItem::where('employee_id', $employee->id)
+            ->whereBetween('created_at', [$yearStart, $yearEnd])
+            ->selectRaw('COALESCE(SUM(gross_salary), 0) as gross_salary_total')
+            ->selectRaw('COALESCE(SUM(pph21), 0) as pph21_total')
+            ->selectRaw('COALESCE(SUM(bpjs_kesehatan_employee + bpjs_tk_jht_employee + bpjs_tk_jp_employee), 0) as bpjs_total')
+            ->first();
 
-        $yearlyGross = $yearlyItems->sum('gross_salary');
-        $yearlyPph21 = $yearlyItems->sum('pph21');
-        $yearlyBpjs = $yearlyItems->sum(fn($i) =>
-            (float) $i->bpjs_kesehatan_employee
-            + (float) $i->bpjs_tk_jht_employee
-            + (float) $i->bpjs_tk_jp_employee
-        );
+        $yearlyGross = (float) ($yearlySummary->gross_salary_total ?? 0);
+        $yearlyPph21 = (float) ($yearlySummary->pph21_total ?? 0);
+        $yearlyBpjs = (float) ($yearlySummary->bpjs_total ?? 0);
 
         return Inertia::render('Portal/TaxInfo', [
             'employee'     => $employee,
@@ -130,6 +147,7 @@ class EmployeePortalController extends Controller
         $employee = $this->currentEmployeeOrAbort();
 
         $leaves = LeaveRequest::byEmployee($employee->id)
+            ->select(['id', 'employee_id', 'leave_type', 'start_date', 'end_date', 'total_days', 'reason', 'status', 'approved_at', 'rejection_reason', 'created_at'])
             ->latest()
             ->paginate(15);
 
@@ -185,12 +203,43 @@ class EmployeePortalController extends Controller
 
     private function currentEmployeeOrAbort(): Employee
     {
-        $employee = auth()->user()->employee;
+        $employee = auth()->user()->employee()
+            ->select([
+                'id',
+                'company_id',
+                'user_id',
+                'first_name',
+                'last_name',
+                'position',
+                'department',
+                'marital_status',
+                'dependents_count',
+                'npwp',
+            ])
+            ->first();
 
         if (!$employee) {
             abort(403, 'Akun Anda belum terhubung dengan data karyawan.');
         }
 
         return $employee;
+    }
+
+    private function monthRange(string $month): ?array
+    {
+        try {
+            $start = CarbonImmutable::createFromFormat('!Y-m', $month);
+        } catch (\Throwable) {
+            return null;
+        }
+
+        if (! $start) {
+            return null;
+        }
+
+        return [
+            $start->startOfMonth()->toDateString(),
+            $start->endOfMonth()->toDateString(),
+        ];
     }
 }

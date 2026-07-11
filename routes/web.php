@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\ActivityLogController;
+use App\Http\Controllers\Admin\AccountController;
 use App\Http\Controllers\AdminStatusController;
 use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\DashboardController;
@@ -9,6 +10,7 @@ use App\Http\Controllers\DeveloperDocsController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\EmployeePortalController;
 use App\Http\Controllers\LeaveRequestController;
+use App\Http\Controllers\ManualAttendanceRequestController;
 use App\Http\Controllers\MobileAttendanceController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\PayrollController;
@@ -38,10 +40,10 @@ Route::get('/demo', [DemoController::class, 'login'])
 */
 Route::get('/', function () {
     return Inertia::render('Welcome', [
-        'canLogin'     => Route::has('login'),
-        'canRegister'  => Route::has('register'),
+        'canLogin' => Route::has('login'),
+        'canRegister' => Route::has('register'),
         'laravelVersion' => Application::VERSION,
-        'phpVersion'   => PHP_VERSION,
+        'phpVersion' => PHP_VERSION,
     ]);
 });
 
@@ -56,14 +58,14 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     // Employees (Admin & HR only)
-    Route::middleware('role:admin|hr')->group(function () {
+    Route::middleware('role:Admin|HR')->group(function () {
         Route::resource('employees', EmployeeController::class);
         Route::post('employees/import', [EmployeeController::class, 'import'])->name('employees.import');
         Route::get('employees/export/excel', [EmployeeController::class, 'export'])->name('employees.export');
     });
 
     // Salary Configuration (Admin & HR only)
-    Route::middleware('role:admin|hr')->group(function () {
+    Route::middleware('role:Admin|HR')->group(function () {
         Route::get('/salary-config', [SalaryConfigController::class, 'index'])->name('salary-config.index');
         Route::get('/salary-config/{employee}', [SalaryConfigController::class, 'show'])->name('salary-config.show');
         Route::put('/salary-config/{employee}', [SalaryConfigController::class, 'update'])->name('salary-config.update');
@@ -74,7 +76,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     });
 
     // Payroll (Admin & HR only)
-    Route::middleware('role:admin|hr')->group(function () {
+    Route::middleware('role:Admin|HR')->group(function () {
         Route::resource('payroll', PayrollController::class);
         Route::post('payroll/{payroll}/process', [PayrollController::class, 'process'])->name('payroll.process');
         Route::post('payroll/{payroll}/approve', [PayrollController::class, 'approve'])->name('payroll.approve');
@@ -82,7 +84,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     });
 
     // Reports (Admin & HR only)
-    Route::middleware('role:admin|hr')->group(function () {
+    Route::middleware('role:Admin|HR')->group(function () {
         Route::get('/reports/payroll', [ReportController::class, 'payrollReport'])->name('reports.payroll');
         Route::get('/reports/tax', [ReportController::class, 'taxReport'])->name('reports.tax');
         Route::get('/reports/attendance', [ReportController::class, 'attendanceReport'])->name('reports.attendance');
@@ -90,28 +92,48 @@ Route::middleware(['auth', 'verified'])->group(function () {
     });
 
     // Leave Requests (Admin & HR only)
-    Route::middleware('role:admin|hr')->prefix('leave-requests')->name('leave-requests.')->group(function () {
+    Route::middleware('role:Admin|HR')->prefix('leave-requests')->name('leave-requests.')->group(function () {
         Route::get('/', [LeaveRequestController::class, 'index'])->name('index');
         Route::post('/{leaveRequest}/approve', [LeaveRequestController::class, 'approve'])->name('approve');
         Route::post('/{leaveRequest}/reject', [LeaveRequestController::class, 'reject'])->name('reject');
     });
 
-    // Settings (Admin only)
-    Route::middleware('role:admin')->group(function () {
-        Route::get('/settings', [SettingController::class, 'index'])->name('settings.index');
-        Route::put('/settings', [SettingController::class, 'update'])->name('settings.update');
-        Route::put('/settings/bpjs', [SettingController::class, 'updateBpjs'])->name('settings.bpjs.update');
-        Route::put('/settings/pph21', [SettingController::class, 'updatePph21'])->name('settings.pph21.update');
+    // Manual Attendance Requests (Admin & HR review flow)
+    Route::middleware('role:Admin|HR')->prefix('manual-attendance-requests')->name('manual-attendance-requests.')->group(function () {
+        Route::get('/', [ManualAttendanceRequestController::class, 'index'])->name('index');
+        Route::get('/poll', [ManualAttendanceRequestController::class, 'poll'])->name('poll');
+        Route::post('/{manualAttendanceRequest}/approve', [ManualAttendanceRequestController::class, 'approve'])->name('approve');
+        Route::post('/{manualAttendanceRequest}/reject', [ManualAttendanceRequestController::class, 'reject'])->name('reject');
+    });
+
+    // Settings (role-based access)
+    Route::prefix('settings')->name('settings.')->group(function () {
+        Route::get('/', [SettingController::class, 'index'])->name('index');
+        Route::put('/', [SettingController::class, 'update'])->name('update')->middleware('role:Admin');
+        Route::put('/attendance', [SettingController::class, 'updateAttendance'])->name('attendance.update')->middleware('role:Admin|HR');
+        Route::put('/notifications', [SettingController::class, 'updateNotifications'])->name('notifications.update');
+        Route::put('/bpjs', [SettingController::class, 'updateBpjs'])->name('bpjs.update')->middleware('role:Admin');
+        Route::put('/pph21', [SettingController::class, 'updatePph21'])->name('pph21.update')->middleware('role:Admin');
     });
 
     // Activity Log & API Docs (Admin only)
-    Route::middleware('role:admin')->group(function () {
+    Route::middleware('role:Admin')->group(function () {
         Route::get('/activity-log', [ActivityLogController::class, 'index'])->name('activity-log.index');
         Route::get('/developer/api-docs', [DeveloperDocsController::class, 'index'])->name('developer.api-docs');
     });
 
+    // Account Management (Admin only)
+    Route::middleware('role:Admin')->prefix('admin/accounts')->name('admin.accounts.')->group(function () {
+        Route::get('/', [AccountController::class, 'index'])->name('index');
+        Route::post('/{account}/activate', [AccountController::class, 'activate'])->name('activate');
+        Route::post('/{account}/suspend', [AccountController::class, 'suspend'])->name('suspend');
+        Route::put('/{account}/role', [AccountController::class, 'updateRole'])->name('role.update');
+        Route::put('/{account}/employee', [AccountController::class, 'linkEmployee'])->name('employee.update');
+        Route::put('/{account}/password', [AccountController::class, 'resetPassword'])->name('password.update');
+    });
+
     // Admin Status Management (Admin only)
-    Route::middleware('role:admin')->prefix('admin/status')->name('admin.status.')->group(function () {
+    Route::middleware('role:Admin')->prefix('admin/status')->name('admin.status.')->group(function () {
         Route::get('/', [AdminStatusController::class, 'index'])->name('index');
         Route::post('/services/{service}', [AdminStatusController::class, 'updateService'])->name('services.update');
         Route::post('/incidents', [AdminStatusController::class, 'createIncident'])->name('incidents.create');
@@ -162,7 +184,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     | Employee Self-Service Portal
     |------------------------------------------------------------------
     */
-    Route::middleware('role:employee|Employee')->prefix('portal')->name('portal.')->group(function () {
+    Route::middleware('role:Employee')->prefix('portal')->name('portal.')->group(function () {
         Route::get('/dashboard', [EmployeePortalController::class, 'dashboard'])->name('dashboard');
         Route::get('/attendance', [EmployeePortalController::class, 'attendanceHistory'])->name('attendance');
         Route::get('/payroll', [EmployeePortalController::class, 'payrollHistory'])->name('payroll');
@@ -177,6 +199,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     |------------------------------------------------------------------
     */
     Route::get('/my-qr', [AttendanceController::class, 'myQr'])->name('attendance.my-qr');
+    Route::post('/manual-attendance-requests', [ManualAttendanceRequestController::class, 'store'])->name('manual-attendance-requests.store');
+    Route::get('/manual-attendance-requests/my-latest', [ManualAttendanceRequestController::class, 'latestForEmployee'])->name('manual-attendance-requests.my-latest');
 });
 
 /*
@@ -241,7 +265,7 @@ Route::middleware([
 | Pulse Dashboard (Admin only)
 |--------------------------------------------------------------------------
 */
-Route::middleware(['auth', 'verified', 'role:admin'])->prefix('pulse')->group(function () {
+Route::middleware(['auth', 'verified', 'role:Admin'])->prefix('pulse')->group(function () {
     Route::get('/', function () {
         return view('vendor.pulse.dashboard');
     })->name('pulse.dashboard');
@@ -256,4 +280,4 @@ Route::get('/status', [SystemStatusController::class, 'index'])->name('status.in
 Route::get('/api/health', [SystemStatusController::class, 'health'])->name('status.health');
 Route::get('/api/status', [SystemStatusController::class, 'apiStatus'])->name('status.api');
 
-require __DIR__ . '/auth.php';
+require __DIR__.'/auth.php';

@@ -16,7 +16,7 @@ class EmployeeResource extends JsonResource
     {
         return [
             'id' => $this->id,
-            'nik' => $this->nik,
+            'nik' => mask_sensitive($this->nik),
             'npwp' => mask_sensitive($this->npwp),
             'full_name' => $this->full_name,
             'first_name' => $this->first_name,

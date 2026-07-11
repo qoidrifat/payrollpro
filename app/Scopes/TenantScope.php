@@ -36,9 +36,10 @@ class TenantScope
      */
     public static function apply(Builder $query): void
     {
-        $companyId = self::currentCompanyId();
-
-        if (!$companyId) {
+        // CLI / console / queue / seeder / migration never bind a company
+        // context. Leave those unscoped — they are trusted server-side
+        // execution paths, not tenant-facing requests.
+        if (!app()->bound('current_company_id')) {
             return;
         }
 
@@ -56,6 +57,17 @@ class TenantScope
             return;
         }
 
-        $query->where($model->qualifyColumn(static::$column), $companyId);
+        $companyId = self::currentCompanyId();
+
+        if ($companyId) {
+            $query->where($model->qualifyColumn(static::$column), $companyId);
+
+            return;
+        }
+
+        // Bound but null: a web request resolved no tenant context.
+        // FAIL CLOSED — return zero rows instead of leaking every company's
+        // data across tenants.
+        $query->whereRaw('1 = 0');
     }
 }

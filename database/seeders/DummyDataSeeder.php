@@ -2,21 +2,39 @@
 
 namespace Database\Seeders;
 
+use App\Models\Company;
 use App\Models\Employee;
-use App\Models\SalaryComponent;
 use App\Models\Payroll;
 use App\Models\PayrollItem;
+use App\Models\SalaryComponent;
+use App\Models\User;
 use App\Services\PayrollCalculator;
-use Illuminate\Database\Seeder;
 use Carbon\Carbon;
+use Illuminate\Database\Seeder;
 
 class DummyDataSeeder extends Seeder
 {
     private array $employees = [];
+
     private array $niks = [];
+
+    private ?int $companyId = null;
+
+    private ?int $reviewerId = null;
 
     public function run(): void
     {
+        $this->companyId = Company::query()->where('is_active', true)->value('id')
+            ?? Company::query()->value('id');
+
+        // Resolve a real user for processed_by/approved_by instead of a
+        // hardcoded id 1, which FK-violates on any non-fresh database where
+        // user 1 was deleted or never existed. Null is acceptable (nullable FK).
+        $this->reviewerId = User::query()
+            ->when($this->companyId, fn ($q) => $q->where('company_id', $this->companyId))
+            ->orderBy('id')
+            ->value('id');
+
         $this->createEmployees();
         $this->createSalaryComponents();
         $this->createAttendanceRecords();
@@ -95,18 +113,19 @@ class DummyDataSeeder extends Seeder
             $this->niks[] = $nik;
 
             $employee = Employee::create(array_merge($emp, [
-                'nik'  => $nik,
+                'company_id' => $this->companyId,
+                'nik' => $nik,
                 'npwp' => $this->generateNpwp(),
                 'bpjs_kesehatan' => $this->generateBpjsNo(),
                 'bpjs_ketenagakerjaan' => $this->generateBpjsNo(),
-                'phone' => '08' . random_int(1000000000, 9999999999),
-                'address' => 'Jl. Raya Bangkalan No. ' . random_int(1, 200),
+                'phone' => '08'.random_int(1000000000, 9999999999),
+                'address' => 'Jl. Raya Bangkalan No. '.random_int(1, 200),
                 'city' => 'Bangkalan',
                 'province' => 'Jawa Timur',
                 'postal_code' => '69100',
                 'bank_name' => ['BCA', 'BRI', 'Mandiri', 'BNI'][$i % 4],
                 'bank_account_number' => $this->generateBankAccount(),
-                'bank_account_name' => $emp['first_name'] . ' ' . $emp['last_name'],
+                'bank_account_name' => $emp['first_name'].' '.$emp['last_name'],
             ]));
 
             $this->employees[] = $employee;
@@ -173,6 +192,7 @@ class DummyDataSeeder extends Seeder
 
         foreach ($months as $m) {
             $payroll = Payroll::create([
+                'company_id' => $this->companyId,
                 'name' => $m['name'],
                 'period_start' => $m['start'],
                 'period_end' => $m['end'],
@@ -183,7 +203,7 @@ class DummyDataSeeder extends Seeder
             $totals = ['gross' => 0, 'deductions' => 0, 'net' => 0];
 
             foreach ($this->employees as $emp) {
-                $result = $calculator->calculateForEmployee($emp);
+                $result = $calculator->calculateForEmployee($emp, $m['start'], $m['end']);
 
                 // Add monthly bonus for January (THR-like)
                 $bonusTotal = $result->bonusesTotal;
@@ -228,8 +248,8 @@ class DummyDataSeeder extends Seeder
                 'total_gross' => $totals['gross'],
                 'total_deductions' => $totals['deductions'],
                 'total_net' => $totals['net'],
-                'processed_by' => 1,
-                'approved_by' => 1,
+                'processed_by' => $this->reviewerId,
+                'approved_by' => $this->reviewerId,
                 'processed_at' => Carbon::parse($m['end'])->addDay()->setTime(9, 0, 0),
                 'approved_at' => Carbon::parse($m['end'])->addDay()->setTime(14, 0, 0),
                 'paid_at' => Carbon::parse($m['end'])->addDays(2)->setTime(10, 0, 0),
@@ -239,21 +259,22 @@ class DummyDataSeeder extends Seeder
 
     private function generateNik(): string
     {
-        $nik = '3529' . str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT)
-            . str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+        $nik = '3529'.str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT)
+            .str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+
         return $nik;
     }
 
     private function generateNpwp(): string
     {
         return str_pad(random_int(0, 99999999), 8, '0', STR_PAD_LEFT)
-            . str_pad(random_int(0, 99999999), 8, '0', STR_PAD_LEFT);
+            .str_pad(random_int(0, 99999999), 8, '0', STR_PAD_LEFT);
     }
 
     private function generateBpjsNo(): string
     {
         return str_pad(random_int(0, 9999999), 7, '0', STR_PAD_LEFT)
-            . str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+            .str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
     }
 
     private function generateBankAccount(): string

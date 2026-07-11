@@ -26,12 +26,16 @@ yarn-debug.log
 # IDE
 .idea/
 .vscode/
+.claude/
+.gstack/
+.bob/
 *.swp
 *.swo
 
 # OS
 .DS_Store
 Thumbs.db
+bash.exe.stackdump
 
 # Docker
 docker-compose.yml
@@ -51,4 +55,5 @@ Dockerfile
 # Temp
 /tmp
 /backup
+-w
 *.log

@@ -23,7 +23,7 @@ class SalaryConfigController extends Controller
         Gate::authorize('viewAny', Employee::class);
 
         $employees = Employee::active()
-            ->withCount(['salaryComponents as component_count' => fn($q) => $q->active()])
+            ->withCount(['salaryComponents as component_count' => fn ($q) => $q->active()])
             ->select(['id', 'nik', 'first_name', 'last_name', 'position', 'department', 'base_salary'])
             ->paginate(15)
             ->withQueryString();
@@ -40,7 +40,7 @@ class SalaryConfigController extends Controller
     {
         Gate::authorize('view', $employee);
 
-        $employee->load(['salaryComponents' => fn($q) => $q->active()]);
+        $employee->load(['salaryComponents' => fn ($q) => $q->active()]);
 
         $currentYear = date('Y');
 
@@ -73,12 +73,12 @@ class SalaryConfigController extends Controller
             'base_salary' => $validated['base_salary'],
         ]);
 
-        if (!empty($validated['components'])) {
+        if (! empty($validated['components'])) {
             $existingIds = $employee->salaryComponents()->pluck('id')->toArray();
             $submittedIds = [];
 
             foreach ($validated['components'] as $componentData) {
-                if (!empty($componentData['id'])) {
+                if (! empty($componentData['id'])) {
                     $submittedIds[] = $componentData['id'];
                     $employee->salaryComponents()->where('id', $componentData['id'])->update([
                         'name' => $componentData['name'],
@@ -101,7 +101,7 @@ class SalaryConfigController extends Controller
             }
 
             $toDelete = array_diff($existingIds, $submittedIds);
-            if (!empty($toDelete)) {
+            if (! empty($toDelete)) {
                 $employee->salaryComponents()->whereIn('id', $toDelete)->delete();
             }
         }
@@ -137,18 +137,18 @@ class SalaryConfigController extends Controller
         Gate::authorize('update', $employee);
 
         $validated = $request->validate([
-            'name'       => ['required', 'string', 'max:255'],
-            'type'       => ['required', 'string', 'in:allowance,deduction,bonus,overtime'],
-            'amount'     => ['required', 'numeric', 'min:0'],
+            'name' => ['required', 'string', 'max:255'],
+            'type' => ['required', 'string', 'in:allowance,deduction,bonus,overtime'],
+            'amount' => ['required', 'numeric', 'min:0'],
             'is_taxable' => ['boolean'],
         ]);
 
         $employee->salaryComponents()->create([
-            'name'       => $validated['name'],
-            'type'       => $validated['type'],
-            'amount'     => $validated['amount'],
+            'name' => $validated['name'],
+            'type' => $validated['type'],
+            'amount' => $validated['amount'],
             'is_taxable' => $validated['is_taxable'] ?? false,
-            'is_active'  => true,
+            'is_active' => true,
         ]);
 
         return redirect()
@@ -163,17 +163,19 @@ class SalaryConfigController extends Controller
     {
         Gate::authorize('update', $employee);
 
+        $component = $employee->salaryComponents()->whereKey($component->id)->firstOrFail();
+
         $validated = $request->validate([
-            'name'       => ['required', 'string', 'max:255'],
-            'type'       => ['required', 'string', 'in:allowance,deduction,bonus,overtime'],
-            'amount'     => ['required', 'numeric', 'min:0'],
+            'name' => ['required', 'string', 'max:255'],
+            'type' => ['required', 'string', 'in:allowance,deduction,bonus,overtime'],
+            'amount' => ['required', 'numeric', 'min:0'],
             'is_taxable' => ['boolean'],
         ]);
 
         $component->update([
-            'name'       => $validated['name'],
-            'type'       => $validated['type'],
-            'amount'     => $validated['amount'],
+            'name' => $validated['name'],
+            'type' => $validated['type'],
+            'amount' => $validated['amount'],
             'is_taxable' => $validated['is_taxable'] ?? false,
         ]);
 
@@ -188,6 +190,8 @@ class SalaryConfigController extends Controller
     public function destroyComponent(Employee $employee, SalaryComponent $component): RedirectResponse
     {
         Gate::authorize('update', $employee);
+
+        $component = $employee->salaryComponents()->whereKey($component->id)->firstOrFail();
 
         $component->delete();
 

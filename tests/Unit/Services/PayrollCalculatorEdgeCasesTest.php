@@ -15,6 +15,7 @@ use App\Services\OvertimeService;
 use App\Services\PayrollCalculator;
 use App\Services\TaxCalculator;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
 class PayrollCalculatorEdgeCasesTest extends TestCase
@@ -36,7 +37,7 @@ class PayrollCalculatorEdgeCasesTest extends TestCase
         // Seed PTKP values
         $this->seedPtkpValues();
 
-        $bpjsCalculator = new BpjsCalculator();
+        $bpjsCalculator = new BpjsCalculator;
         $taxCalculator = new TaxCalculator(date('Y'));
         $overtimeService = $this->createMock(OvertimeService::class);
 
@@ -114,10 +115,10 @@ class PayrollCalculatorEdgeCasesTest extends TestCase
         foreach ($brackets as [$start, $end, $rate]) {
             Pph21Config::factory()->create([
                 'income_bracket_start' => $start,
-                'income_bracket_end'   => $end,
-                'rate_percentage'      => $rate,
-                'is_active'            => true,
-                'applicable_year'       => $year,
+                'income_bracket_end' => $end,
+                'rate_percentage' => $rate,
+                'is_active' => true,
+                'applicable_year' => $year,
             ]);
         }
     }
@@ -131,17 +132,17 @@ class PayrollCalculatorEdgeCasesTest extends TestCase
             'TK/1' => 58500000,
             'TK/2' => 63000000,
             'TK/3' => 67500000,
-            'K/0'  => 58500000,
-            'K/1'  => 63000000,
-            'K/2'  => 67500000,
-            'K/3'  => 72000000,
+            'K/0' => 58500000,
+            'K/1' => 63000000,
+            'K/2' => 67500000,
+            'K/3' => 72000000,
         ];
 
         foreach ($ptkp as $category => $amount) {
             PtkpConfig::factory()->create([
-                'category'       => $category,
-                'annual_amount'  => $amount,
-                'is_active'      => true,
+                'category' => $category,
+                'annual_amount' => $amount,
+                'is_active' => true,
                 'applicable_year' => $year,
             ]);
         }
@@ -267,19 +268,58 @@ class PayrollCalculatorEdgeCasesTest extends TestCase
 
     public function test_handles_maximum_dependents_ptkp(): void
     {
-        // More than 3 dependents: additional Rp4,500,000/dependent beyond 3
+        // Dependents capped at 3 (PMK 101/2016) — beyond 3 adds nothing.
         $employee = Employee::factory()->create([
             'base_salary' => 20000000,
             'marital_status' => MaritalStatus::Married,
-            'dependents_count' => 5, // K/3 + 2 extra = base 72M + 2*4.5M = 81M
+            'dependents_count' => 5, // capped to K/3
         ]);
 
         $result = $this->calculator->calculateForEmployee($employee);
 
         $details = $result->details;
-        // PTKP = K/3 (72,000,000) + 2 extras (2 * 4,500,000) = 81,000,000
+        // PTKP = K/3 = 72,000,000 (no additional for dependents beyond 3)
         $this->assertEquals('K/3', $details['ptkp_category']);
-        $this->assertEquals(81000000, $details['ptkp']);
+        $this->assertEquals(72000000, $details['ptkp']);
+    }
+
+    // ─── Prorata (join/resign mid-period) Edge Cases ─────────────
+
+    public function test_prorates_base_salary_for_employee_joining_mid_period(): void
+    {
+        // 30-day period. Employee joins on the 16th → 15 of 30 days worked.
+        $employee = Employee::factory()->create([
+            'base_salary' => 6000000,
+            'marital_status' => MaritalStatus::Single,
+            'dependents_count' => 0,
+            'join_date' => '2026-04-16',
+            'resign_date' => null,
+        ]);
+
+        $result = $this->calculator->calculateForEmployee($employee, '2026-04-01', '2026-04-30');
+
+        $details = $result->details;
+        // 15 worked days / 30 total = 0.5
+        $this->assertEqualsWithDelta(0.5, $details['prorata_factor'], 0.0001);
+        // base 6,000,000 * 0.5 = 3,000,000
+        $this->assertEquals(3000000, $details['base_salary']);
+    }
+
+    public function test_no_proration_for_employee_employed_entire_period(): void
+    {
+        $employee = Employee::factory()->create([
+            'base_salary' => 6000000,
+            'marital_status' => MaritalStatus::Single,
+            'dependents_count' => 0,
+            'join_date' => '2025-01-01',
+            'resign_date' => null,
+        ]);
+
+        $result = $this->calculator->calculateForEmployee($employee, '2026-04-01', '2026-04-30');
+
+        $details = $result->details;
+        $this->assertEquals(1.0, $details['prorata_factor']);
+        $this->assertEquals(6000000, $details['base_salary']);
     }
 
     // ─── Component Edge Cases ─────────────────────────────────────
@@ -331,7 +371,7 @@ class PayrollCalculatorEdgeCasesTest extends TestCase
         $overtimeService->method('getOvertimeForPeriod')
             ->willReturn(750000.0); // Rp750,000 overtime this month
 
-        $bpjsCalculator = new BpjsCalculator();
+        $bpjsCalculator = new BpjsCalculator;
         $taxCalculator = new TaxCalculator(date('Y'));
 
         $calculator = new PayrollCalculator(
@@ -430,7 +470,7 @@ class PayrollCalculatorEdgeCasesTest extends TestCase
         $this->assertEquals('K', $details['marital_status']);
     }
 
-    /** @test */
+    #[Test]
     public function test_calculate_for_all_active_with_multiple_employees(): void
     {
         Employee::factory()->count(5)->create([

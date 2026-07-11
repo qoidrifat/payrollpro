@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { Link, router, usePage } from '@inertiajs/vue3'
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
 import PageHeader from '@/Components/PageHeader.vue'
@@ -7,6 +7,7 @@ import Badge from '@/Components/Badge.vue'
 import Modal from '@/Components/Modal.vue'
 import ConfirmDialog from '@/Components/ConfirmDialog.vue'
 import EmptyState from '@/Components/EmptyState.vue'
+import { useSupabaseRealtime } from '@/composables/useSupabaseRealtime'
 import {
     ArrowLeftIcon,
     ArrowPathIcon,
@@ -20,6 +21,11 @@ import {
 const page = usePage()
 const payroll = computed(() => page.props.payroll)
 const items = computed(() => page.props.payroll?.items || [])
+const realtime = useSupabaseRealtime()
+const syncing = ref(false)
+const syncError = ref('')
+let pollTimer = null
+let realtimeUnsubscribe = null
 
 const formatCurrency = (value) =>
     new Intl.NumberFormat('id-ID', {
@@ -38,7 +44,61 @@ const statusVariant = (status) => {
     return map[status] || 'default'
 }
 
+const pph21DeductionName = (item) => {
+    const pph21 = Number(item.pph21) || 0
+    const details = item.calculation_details || {}
+
+    if (pph21 === 0 && Number(details.ptkp || 0) > 0) {
+        return `PPh 21 (di bawah PTKP ${details.ptkp_category || ''})`.trim()
+    }
+
+    return 'PPh 21'
+}
+
 const processing = ref(false)
+
+const isPayrollProcessing = computed(() => payroll.value?.status === 'processing')
+const realtimeLabel = computed(() => {
+    if (!realtime.isConfigured) return 'Polling aktif'
+    if (realtime.status.value === 'SUBSCRIBED') return 'Realtime aktif'
+    if (['CHANNEL_ERROR', 'TIMED_OUT', 'CLOSED'].includes(realtime.status.value)) return 'Realtime terputus, polling aktif'
+    return 'Menghubungkan realtime'
+})
+
+const refreshPayroll = () => {
+    if (syncing.value || !payroll.value?.id) return
+
+    syncing.value = true
+    syncError.value = ''
+    router.reload({
+        only: ['payroll'],
+        preserveScroll: true,
+        preserveState: true,
+        onError: () => {
+            syncError.value = 'Gagal menyinkronkan data payroll. Sistem akan mencoba lagi.'
+        },
+        onFinish: () => {
+            syncing.value = false
+        },
+    })
+}
+
+const startPolling = () => {
+    if (pollTimer) return
+
+    pollTimer = setInterval(() => {
+        if (isPayrollProcessing.value) {
+            refreshPayroll()
+        }
+    }, 10000)
+}
+
+const stopPolling = () => {
+    if (!pollTimer) return
+
+    clearInterval(pollTimer)
+    pollTimer = null
+}
 
 const processPayroll = () => {
     processing.value = true
@@ -46,6 +106,11 @@ const processPayroll = () => {
         route('payroll.process', payroll.value.id),
         {},
         {
+            preserveScroll: true,
+            onSuccess: () => {
+                refreshPayroll()
+                startPolling()
+            },
             onFinish: () => {
                 processing.value = false
             },
@@ -88,7 +153,7 @@ const itemDeductions = (item) => {
         { name: 'BPJS Kesehatan', amount: Number(item.bpjs_kesehatan_employee) || 0 },
         { name: 'BPJS TK JHT', amount: Number(item.bpjs_tk_jht_employee) || 0 },
         { name: 'BPJS TK JP', amount: Number(item.bpjs_tk_jp_employee) || 0 },
-        { name: 'PPh 21', amount: Number(item.pph21) || 0 },
+        { name: pph21DeductionName(item), amount: Number(item.pph21) || 0 },
     ]
     if (Number(item.deductions_total) > 0) {
         d.push({ name: 'Potongan Lain', amount: Number(item.deductions_total) })
@@ -111,12 +176,35 @@ const totals = computed(() => {
 })
 
 const showDeductionModal = ref(false)
-const selectedDeductions = ref([])
+const selectedItemId = ref(null)
+const selectedItem = computed(() => items.value.find((item) => item.id === selectedItemId.value) || null)
+const selectedDeductions = computed(() => selectedItem.value ? itemDeductions(selectedItem.value) : [])
 
 const viewDeductions = (item) => {
-    selectedDeductions.value = itemDeductions(item)
+    selectedItemId.value = item.id
     showDeductionModal.value = true
 }
+
+watch(isPayrollProcessing, (processing) => {
+    if (processing) {
+        startPolling()
+    } else {
+        stopPolling()
+    }
+}, { immediate: true })
+
+onMounted(() => {
+    realtimeUnsubscribe = realtime.subscribeToNotifications({
+        channelName: `project-kp-payroll-${payroll.value?.id || 'detail'}`,
+        topics: ['payroll'],
+        onChange: () => refreshPayroll(),
+    })
+})
+
+onUnmounted(() => {
+    stopPolling()
+    if (realtimeUnsubscribe) realtimeUnsubscribe()
+})
 </script>
 
 <template>
@@ -132,7 +220,7 @@ const viewDeductions = (item) => {
 
         <div class="space-y-6">
             <!-- Payroll Info Header -->
-            <div class="glass-card p-6">
+            <div v-if="payroll" class="glass-card p-6">
                 <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                     <div class="space-y-2">
                         <div class="flex items-center gap-3">
@@ -146,7 +234,12 @@ const viewDeductions = (item) => {
                             <span v-if="payroll.created_at">Dibuat: {{ payroll.created_at }}</span>
                             <span v-if="payroll.processed_at">Diproses: {{ payroll.processed_at }}</span>
                             <span v-if="payroll.approved_at">Disetujui: {{ payroll.approved_at }}</span>
+                            <span>{{ realtimeLabel }}</span>
+                            <span v-if="syncing">Menyinkronkan...</span>
                         </div>
+                        <p v-if="syncError" class="text-sm text-red-600 dark:text-red-400">
+                            {{ syncError }}
+                        </p>
                     </div>
                     <div class="flex items-center gap-3">
                         <button

@@ -96,6 +96,23 @@
     .skeleton {
         @apply animate-pulse bg-gray-200 dark:bg-gray-700 rounded-lg;
     }
+
+    .admin-sidebar-group {
+        @apply transition-all duration-200;
+    }
+
+    .admin-sidebar-link {
+        @apply relative outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-gray-900;
+    }
+
+    .admin-sidebar-link::before {
+        content: '';
+        @apply absolute left-0 top-1/2 h-5 w-0.5 -translate-y-1/2 rounded-full bg-transparent transition-colors;
+    }
+
+    .admin-sidebar-link:hover::before {
+        @apply bg-gray-300 dark:bg-gray-700;
+    }
 }
 
 @layer utilities {

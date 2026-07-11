@@ -23,7 +23,7 @@ class PayrollCalculatorTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $bpjsCalculator = new BpjsCalculator();
+        $bpjsCalculator = new BpjsCalculator;
         $taxCalculator = new TaxCalculator(2025);
         $overtimeService = $this->createMock(OvertimeService::class);
 
@@ -178,6 +178,32 @@ class PayrollCalculatorTest extends TestCase
         foreach ($results as $result) {
             $this->assertInstanceOf(PayrollCalculationResult::class, $result);
         }
+    }
+
+    public function test_calculate_for_employee_uses_explicit_payroll_period_for_overtime(): void
+    {
+        $employee = Employee::factory()->create([
+            'base_salary' => 5000000,
+            'employment_status' => EmploymentStatus::Permanent,
+            'marital_status' => MaritalStatus::Single,
+            'dependents_count' => 0,
+        ]);
+
+        $overtimeService = $this->createMock(OvertimeService::class);
+        $overtimeService->expects($this->once())
+            ->method('getOvertimeForPeriod')
+            ->with($employee->id, '2026-01-01', '2026-01-31')
+            ->willReturn(250000.0);
+
+        $calculator = new PayrollCalculator(
+            new BpjsCalculator,
+            new TaxCalculator(2025),
+            $overtimeService,
+        );
+
+        $result = $calculator->calculateForEmployee($employee, '2026-01-01', '2026-01-31');
+
+        $this->assertSame(250000.0, $result->overtimePay);
     }
 
     public function test_net_salary_is_positive(): void

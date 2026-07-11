@@ -29,18 +29,15 @@ class DatabaseBackup extends Command
     {
         $connection = config('database.default');
         $dbConfig = config("database.connections.{$connection}");
+        $driver = $dbConfig['driver'] ?? $connection;
 
-        if ($connection !== 'mysql') {
-            $this->warn("Database backup is currently only supported for MySQL (current: {$connection}). Skipping.");
+        if (! in_array($driver, ['mysql', 'mariadb', 'pgsql'], true)) {
+            $this->warn("Database backup supports MySQL/MariaDB/PostgreSQL only (current: {$driver}). Skipping.");
 
             return Command::FAILURE;
         }
 
-        $host = $dbConfig['host'] ?? '127.0.0.1';
-        $port = $dbConfig['port'] ?? 3306;
         $database = $dbConfig['database'];
-        $username = $dbConfig['username'] ?? 'root';
-        $password = $dbConfig['password'] ?? '';
         $keepDays = (int) $this->option('keep-days');
 
         $filename = 'backup-' . now()->format('Y-m-d-H-i-s') . '.sql';
@@ -51,29 +48,31 @@ class DatabaseBackup extends Command
 
         $backupPath = storage_path("app/{$backupDir}/{$filename}");
 
-        // Build mysqldump command
-        $command = sprintf(
-            'mysqldump --host=%s --port=%s --user=%s %s %s > %s 2>&1',
-            escapeshellarg($host),
-            escapeshellarg($port),
-            escapeshellarg($username),
-            $password ? '--password=' . escapeshellarg($password) : '',
-            escapeshellarg($database),
-            escapeshellarg($backupPath)
-        );
+        [$command, $env] = $driver === 'pgsql'
+            ? $this->buildPgDumpCommand($dbConfig, $backupPath)
+            : $this->buildMysqlDumpCommand($dbConfig, $backupPath);
 
         $this->info("Creating database backup: {$filename}");
 
         $output = null;
         $returnCode = null;
-        exec($command, $output, $returnCode);
+        $this->execWithEnv($command, $env, $output, $returnCode);
 
-        if ($returnCode !== 0) {
-            $this->error('Database backup failed: ' . implode("\n", $output));
+        // pg_dump/mysqldump return 0 on success. A 0-byte file also means a
+        // silent failure (e.g. auth error swallowed) — treat as failure.
+        if ($returnCode !== 0 || ! file_exists($backupPath) || filesize($backupPath) === 0) {
+            $this->error('Database backup failed: ' . implode("\n", (array) $output));
             Log::error('Database backup failed', [
-                'database' => $database,
-                'output'   => $output,
+                'database'    => $database,
+                'driver'      => $driver,
+                'return_code' => $returnCode,
+                'output'      => $output,
             ]);
+
+            // Remove empty/partial file so it is not mistaken for a valid backup
+            if (file_exists($backupPath) && filesize($backupPath) === 0) {
+                @unlink($backupPath);
+            }
 
             return Command::FAILURE;
         }
@@ -88,9 +87,110 @@ class DatabaseBackup extends Command
             'filename'  => $filename,
             'size'      => $fileSize,
             'database'  => $database,
+            'driver'    => $driver,
         ]);
 
         return Command::SUCCESS;
+    }
+
+    /**
+     * Build the mysqldump command and its environment.
+     *
+     * The password is passed via the MYSQL_PWD env var rather than on the
+     * command line so it does not leak into the process list.
+     *
+     * @return array{0: string, 1: array<string, string>}
+     */
+    private function buildMysqlDumpCommand(array $dbConfig, string $backupPath): array
+    {
+        $host = $dbConfig['host'] ?? '127.0.0.1';
+        $port = $dbConfig['port'] ?? 3306;
+        $database = $dbConfig['database'];
+        $username = $dbConfig['username'] ?? 'root';
+        $password = (string) ($dbConfig['password'] ?? '');
+
+        $command = sprintf(
+            'mysqldump --host=%s --port=%s --user=%s --single-transaction --quick %s > %s 2>&1',
+            escapeshellarg($host),
+            escapeshellarg((string) $port),
+            escapeshellarg($username),
+            escapeshellarg($database),
+            escapeshellarg($backupPath)
+        );
+
+        return [$command, $password !== '' ? ['MYSQL_PWD' => $password] : []];
+    }
+
+    /**
+     * Build the pg_dump command and its environment.
+     *
+     * The password is passed via the PGPASSWORD env var (pg_dump has no
+     * password flag). Errors go to a sibling .err file so a failed dump does
+     * not pollute the .sql output with diagnostic text.
+     *
+     * @return array{0: string, 1: array<string, string>}
+     */
+    private function buildPgDumpCommand(array $dbConfig, string $backupPath): array
+    {
+        $host = $dbConfig['host'] ?? '127.0.0.1';
+        $port = $dbConfig['port'] ?? 5432;
+        $database = $dbConfig['database'];
+        $username = $dbConfig['username'] ?? 'postgres';
+        $password = (string) ($dbConfig['password'] ?? '');
+
+        $command = sprintf(
+            'pg_dump --host=%s --port=%s --username=%s --no-owner --no-privileges --dbname=%s --file=%s 2>%s',
+            escapeshellarg($host),
+            escapeshellarg((string) $port),
+            escapeshellarg($username),
+            escapeshellarg($database),
+            escapeshellarg($backupPath),
+            escapeshellarg($backupPath . '.err')
+        );
+
+        return [$command, $password !== '' ? ['PGPASSWORD' => $password] : []];
+    }
+
+    /**
+     * Run a shell command with extra environment variables, inheriting the
+     * current environment for everything else.
+     *
+     * @param  array<string, string>  $env
+     */
+    private function execWithEnv(string $command, array $env, ?array &$output, ?int &$returnCode): void
+    {
+        if ($env === []) {
+            exec($command, $output, $returnCode);
+
+            return;
+        }
+
+        $descriptors = [
+            0 => ['pipe', 'r'],
+            1 => ['pipe', 'w'],
+            2 => ['pipe', 'w'],
+        ];
+
+        $process = proc_open($command, $descriptors, $pipes, null, array_merge(getenv() ?: [], $env));
+
+        if (! is_resource($process)) {
+            $returnCode = 1;
+            $output = ['Failed to start backup process.'];
+
+            return;
+        }
+
+        fclose($pipes[0]);
+        $stdout = stream_get_contents($pipes[1]);
+        $stderr = stream_get_contents($pipes[2]);
+        fclose($pipes[1]);
+        fclose($pipes[2]);
+
+        $returnCode = proc_close($process);
+        $output = array_filter(array_merge(
+            explode("\n", trim((string) $stdout)),
+            explode("\n", trim((string) $stderr)),
+        ), fn ($line) => $line !== '');
     }
 
     /**

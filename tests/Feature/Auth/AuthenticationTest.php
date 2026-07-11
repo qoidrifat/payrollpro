@@ -42,6 +42,21 @@ class AuthenticationTest extends TestCase
         $this->assertGuest();
     }
 
+    public function test_suspended_users_can_not_authenticate(): void
+    {
+        $user = User::factory()->create([
+            'account_status' => User::STATUS_SUSPENDED,
+            'suspended_at' => now(),
+        ]);
+
+        $this->post('/login', [
+            'email' => $user->email,
+            'password' => 'password',
+        ]);
+
+        $this->assertGuest();
+    }
+
     public function test_users_can_logout(): void
     {
         $user = User::factory()->create();

@@ -3,6 +3,7 @@
 namespace App\Exports;
 
 use App\Models\PayrollItem;
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
@@ -18,10 +19,15 @@ class TaxReportExport implements FromCollection, WithHeadings, WithMapping, With
         private readonly int $year,
     ) {}
 
+    /** Per-export row counter (instance-scoped; avoids static leak across exports) */
+    private int $rowNumber = 0;
+
     public function collection(): Collection
     {
-        return PayrollItem::with('employee')
-            ->whereHas('payroll', fn($q) => $q->whereYear('period_end', $this->year))
+        $start = CarbonImmutable::create($this->year, 1, 1);
+
+        return PayrollItem::with('employee:id,first_name,last_name,nik,position')
+            ->whereHas('payroll', fn($q) => $q->whereBetween('period_end', [$start->toDateString(), $start->endOfYear()->toDateString()]))
             ->selectRaw('
                 employee_id,
                 SUM(gross_salary) as total_gross,
@@ -47,15 +53,14 @@ class TaxReportExport implements FromCollection, WithHeadings, WithMapping, With
             'Total Penghasilan Bruto',
             'Total BPJS (Karyawan)',
             'Total PPh21',
-            'PKP Tahunan',
+            'Penghasilan Neto (Bruto - BPJS)',
             'Estimasi Tarif Efektif',
         ];
     }
 
     public function map($item): array
     {
-        static $no = 0;
-        $no++;
+        $no = ++$this->rowNumber;
 
         $employee = $item->employee;
         $taxableIncome = (float) $item->total_gross - (float) $item->total_bpjs_employee;

@@ -14,6 +14,7 @@ const selectedYear = ref(page.props.filters?.year || new Date().getFullYear())
 
 const taxData = computed(() => page.props.taxData || { data: [] })
 const totalPph21 = computed(() => page.props.totalPph21 || 0)
+const filters = computed(() => page.props.filters || {})
 
 const formatCurrency = (value) =>
     new Intl.NumberFormat('id-ID', {
@@ -88,7 +89,7 @@ const applyFilter = () => {
             <!-- Total PPh21 -->
             <div class="grid grid-cols-1 sm:grid-cols-1 gap-6">
                 <StatCard
-                    title="Total PPh21 untuk {{ selectedYear }}"
+                    :title="`Total PPh21 untuk ${selectedYear}`"
                     :value="formatCurrency(totalPph21)"
                     :icon="DocumentTextIcon"
                     color="amber"
@@ -107,6 +108,13 @@ const applyFilter = () => {
                     :columns="columns"
                     :rows="rows"
                     search-placeholder="Cari karyawan..."
+                    :server-side="true"
+                    :total="taxData.total"
+                    :current-page="taxData.current_page"
+                    :last-page="taxData.last_page"
+                    :per-page="taxData.per_page"
+                    :filters="filters"
+                    base-route="/reports/tax"
                 />
                 <EmptyState
                     v-else

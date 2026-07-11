@@ -19,7 +19,7 @@ const generate = async () => {
 };
 
 onMounted(generate);
-watch(() => props.text, generate);
+watch(() => [props.text, props.size], generate);
 </script>
 
 <template>

@@ -2,12 +2,13 @@
 
 namespace App\Models;
 
+use App\Traits\BelongsToCompany;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Holiday extends Model
 {
-    use HasFactory;
+    use BelongsToCompany, HasFactory;
 
     protected $fillable = [
         'company_id', 'name', 'date',
@@ -24,14 +25,9 @@ class Holiday extends Model
         ];
     }
 
-    public function company()
-    {
-        return $this->belongsTo(Company::class);
-    }
-
     public function scopeForDate($query, string $date)
     {
-        return $query->where('date', $date);
+        return $query->whereDate('date', $date);
     }
 
     public function scopeForYear($query, int $year)

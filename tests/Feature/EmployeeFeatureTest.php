@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\ActivityLog;
 use App\Models\Employee;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\Concerns\WithAdminUser;
@@ -69,6 +70,52 @@ class EmployeeFeatureTest extends TestCase
         $employee = Employee::where('first_name', 'Budi')->firstOrFail();
 
         $this->assertSame('1234567890123456', $employee->nik);
+        $this->assertSame(Employee::hashNik('1234567890123456'), $employee->nik_hash);
+    }
+
+    public function test_audit_log_redacts_sensitive_pii_fields(): void
+    {
+        $employee = Employee::factory()->create([
+            'nik' => '1234567890123456',
+            'npwp' => '09.254.294.3-407.000',
+            'bank_account_number' => '1122334455',
+        ]);
+
+        $log = ActivityLog::where('subject_type', Employee::class)
+            ->where('subject_id', $employee->id)
+            ->where('action', 'created')
+            ->firstOrFail();
+
+        $after = $log->properties['after'];
+
+        $this->assertSame('[redacted]', $after['nik']);
+        $this->assertSame('[redacted]', $after['npwp']);
+        $this->assertSame('[redacted]', $after['bank_account_number']);
+        $this->assertSame('[redacted]', $after['nik_hash']);
+        // Non-sensitif tetap tersimpan apa adanya.
+        $this->assertSame($employee->first_name, $after['first_name']);
+        // Nilai mentah PII tidak boleh muncul di mana pun pada log.
+        $this->assertStringNotContainsString('1234567890123456', json_encode($log->properties));
+        $this->assertStringNotContainsString('1122334455', json_encode($log->properties));
+    }
+
+    public function test_duplicate_nik_is_rejected_using_blind_index(): void
+    {
+        Employee::factory()->create(['nik' => '1234567890123456']);
+
+        $response = $this->actingAs($this->admin)->post('/employees', [
+            'first_name' => 'Duplicate',
+            'last_name' => 'Nik',
+            'nik' => '1234567890123456',
+            'gender' => 'male',
+            'position' => 'Developer',
+            'department' => 'IT',
+            'join_date' => '2026-01-15',
+            'employment_status' => 'permanent',
+            'base_salary' => 5000000,
+        ]);
+
+        $response->assertSessionHasErrors('nik');
     }
 
     public function test_employee_can_be_viewed(): void

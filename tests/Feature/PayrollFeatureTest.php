@@ -4,15 +4,18 @@ namespace Tests\Feature;
 
 use App\Enums\ApprovalStatus;
 use App\Enums\PayrollStatus;
+use App\Jobs\ProcessPayroll as ProcessPayrollJob;
 use App\Models\Approval;
+use App\Models\Employee;
 use App\Models\Payroll;
 use App\Models\User;
 use App\Notifications\PayrollProcessedNotification;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Tests\Concerns\WithAdminUser;
-use Tests\TestCase;
+use Illuminate\Support\Facades\Queue;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
+use Tests\Concerns\WithAdminUser;
+use Tests\TestCase;
 
 class PayrollFeatureTest extends TestCase
 {
@@ -100,6 +103,54 @@ class PayrollFeatureTest extends TestCase
 
         // No active employees, should fail gracefully
         $response->assertSessionHasNoErrors();
+    }
+
+    public function test_payroll_process_sets_processing_state_and_preserves_processor(): void
+    {
+        Queue::fake();
+        Employee::factory()->create(['is_active' => true]);
+        $payroll = Payroll::factory()->create(['status' => PayrollStatus::Draft]);
+
+        $response = $this->actingAs($this->admin)->post("/payroll/{$payroll->id}/process");
+
+        $response->assertRedirect(route('payroll.show', $payroll));
+        $this->assertDatabaseHas('payrolls', [
+            'id' => $payroll->id,
+            'status' => PayrollStatus::Processing->value,
+            'processed_by' => $this->admin->id,
+            'total_employees' => 1,
+        ]);
+        Queue::assertPushed(ProcessPayrollJob::class);
+    }
+
+    public function test_payroll_process_blocked_when_overlapping_period_active(): void
+    {
+        Queue::fake();
+        Employee::factory()->create(['is_active' => true]);
+
+        // An active payroll already covers April 2026.
+        Payroll::factory()->create([
+            'status' => PayrollStatus::Processed,
+            'period_start' => '2026-04-01',
+            'period_end' => '2026-04-30',
+        ]);
+
+        // A draft payroll for an overlapping window must be rejected.
+        $draft = Payroll::factory()->create([
+            'status' => PayrollStatus::Draft,
+            'period_start' => '2026-04-15',
+            'period_end' => '2026-05-14',
+        ]);
+
+        $response = $this->actingAs($this->admin)->post("/payroll/{$draft->id}/process");
+
+        $response->assertRedirect(route('payroll.show', $draft));
+        // Draft stays draft; no job dispatched for the second run.
+        $this->assertDatabaseHas('payrolls', [
+            'id' => $draft->id,
+            'status' => PayrollStatus::Draft->value,
+        ]);
+        Queue::assertNotPushed(ProcessPayrollJob::class);
     }
 
     public function test_payroll_index_can_be_filtered(): void

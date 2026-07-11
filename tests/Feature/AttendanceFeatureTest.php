@@ -6,9 +6,10 @@ use App\Events\EmployeeClockedOut;
 use App\Models\Attendance;
 use App\Models\Employee;
 use App\Models\User;
+use Carbon\CarbonImmutable;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Event;
-use Illuminate\Foundation\Testing\RefreshDatabase;
 use Inertia\Testing\AssertableInertia as Assert;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
@@ -109,10 +110,42 @@ class AttendanceFeatureTest extends TestCase
 
     public function test_my_qr_page_is_accessible(): void
     {
+        $this->travelToOperationalTime();
+
+        Employee::factory()->count(2)->create();
+
         $response = $this->actingAs($this->admin)->get('/my-qr');
 
-        // Admin without employee record gets redirected
-        $response->assertStatus(302);
+        $response->assertStatus(200);
+        $response->assertInertia(fn (Assert $page) => $page
+            ->component('Attendance/MyQr')
+            ->where('mode', 'admin')
+            ->has('employees', 2)
+            ->has('employee.qr_in_url')
+            ->has('employee.qr_out_url')
+            ->has('qrExpiresAt')
+        );
+    }
+
+    public function test_employee_my_qr_page_uses_own_employee_profile(): void
+    {
+        $this->travelToOperationalTime();
+
+        $this->createEmployeeRoleWithAttendancePermission();
+        $user = User::factory()->create();
+        $employee = Employee::factory()->create(['user_id' => $user->id]);
+        $user->assignRole('Employee');
+
+        $response = $this->actingAs($user)->get('/my-qr');
+
+        $response->assertStatus(200);
+        $response->assertInertia(fn (Assert $page) => $page
+            ->component('Attendance/MyQr')
+            ->where('mode', 'employee')
+            ->where('employee.id', $employee->id)
+            ->has('employee.qr_in_url')
+            ->has('employee.qr_out_url')
+        );
     }
 
     public function test_employee_without_employee_record_cannot_see_other_attendances(): void
@@ -134,7 +167,7 @@ class AttendanceFeatureTest extends TestCase
     public function test_first_clock_out_returns_success_and_dispatches_event(): void
     {
         Event::fake([EmployeeClockedOut::class]);
-        $this->travelTo(now()->setTime(16, 0));
+        $this->travelToOperationalTime(16, 0);
 
         $user = User::factory()->create();
         $employee = Employee::factory()->create(['user_id' => $user->id]);
@@ -162,7 +195,7 @@ class AttendanceFeatureTest extends TestCase
     public function test_repeated_clock_out_returns_info(): void
     {
         Event::fake([EmployeeClockedOut::class]);
-        $this->travelTo(now()->setTime(16, 0));
+        $this->travelToOperationalTime(16, 0);
 
         $user = User::factory()->create();
         $employee = Employee::factory()->create(['user_id' => $user->id]);
@@ -191,16 +224,23 @@ class AttendanceFeatureTest extends TestCase
         $role->givePermissionTo($permission);
     }
 
-    private function cacheAttendanceToken(Employee $employee): string
+    private function cacheAttendanceToken(Employee $employee, string $action = 'out'): string
     {
         $token = 'valid-attendance-token';
 
-        Cache::put("attendance_token:{$employee->id}", [
+        Cache::put("attendance_token:{$employee->id}:{$action}", [
             'token_hash' => hash('sha256', $token),
             'ip' => '127.0.0.1',
             'user_agent' => 'attendance-test-agent',
         ], now()->addMinutes(5));
 
         return $token;
+    }
+
+    private function travelToOperationalTime(int $hour = 10, int $minute = 0): void
+    {
+        $timezone = config('attendance.operational_hours.timezone', 'Asia/Jakarta');
+
+        $this->travelTo(CarbonImmutable::parse("2026-06-10 {$hour}:{$minute}:00", $timezone));
     }
 }

@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Enums\MaritalStatus;
 use App\Models\Pph21Config;
 use App\Models\PtkpConfig;
+use Illuminate\Support\Facades\Cache;
 
 class TaxCalculator
 {
@@ -27,17 +28,36 @@ class TaxCalculator
         $this->loadPtkpValues();
     }
 
+    /**
+     * Reload tax brackets/PTKP for a specific year (e.g. the payroll period
+     * year) instead of the current calendar year.
+     */
+    public function useYear(int $year): void
+    {
+        $year = $year ?: (int) date('Y');
+        if ($year === $this->taxYear) {
+            return;
+        }
+        $this->taxYear = $year;
+        $this->brackets = [];
+        $this->ptkpValues = [];
+        $this->loadBrackets();
+        $this->loadPtkpValues();
+    }
+
     private function loadBrackets(): void
     {
         if (!\Illuminate\Support\Facades\Schema::hasTable('pph21_configs')) {
             return; // use fallback brackets built into calculateProgressiveTax()
         }
 
-        $this->brackets = Pph21Config::active()
-            ->forYear($this->taxYear)
-            ->orderBy('income_bracket_start')
-            ->get()
-            ->toArray();
+        $this->brackets = Cache::remember("tax:pph21-brackets:{$this->taxYear}", 3600, function () {
+            return Pph21Config::active()
+                ->forYear($this->taxYear)
+                ->orderBy('income_bracket_start')
+                ->get()
+                ->toArray();
+        });
     }
 
     private function loadPtkpValues(): void
@@ -46,13 +66,19 @@ class TaxCalculator
             return; // use fallback PTKP built into getPtkp()
         }
 
-        $configs = PtkpConfig::active()
-            ->forYear($this->taxYear)
-            ->get();
+        $this->ptkpValues = Cache::remember("tax:ptkp-values:{$this->taxYear}", 3600, function () {
+            $configs = PtkpConfig::active()
+                ->forYear($this->taxYear)
+                ->get();
 
-        foreach ($configs as $config) {
-            $this->ptkpValues[$config->category] = (float) $config->annual_amount;
-        }
+            $values = [];
+
+            foreach ($configs as $config) {
+                $values[$config->category] = (float) $config->annual_amount;
+            }
+
+            return $values;
+        });
     }
 
     /**
@@ -68,7 +94,8 @@ class TaxCalculator
      *   K/2  = Married, 2 dependents → 67,500,000
      *   K/3  = Married, 3 dependents → 72,000,000
      *
-     * Dependents > 3 add Rp 4,500,000 each.
+     * Per Indonesian tax law (PMK 101/PMK.010/2016), dependents are capped at
+     * 3 — additional dependents beyond 3 do NOT increase PTKP.
      */
     public function getPtkp(
         ?MaritalStatus $maritalStatus = null,
@@ -76,7 +103,7 @@ class TaxCalculator
     ): float {
         $maritalStatus ??= MaritalStatus::Single;
 
-        // Cap the category index at 3 — extras are handled by per-dependent addition
+        // Cap dependents at 3 — the statutory maximum. Extras add nothing.
         $categoryIndex = min($dependents, 3);
         $category = $maritalStatus->code() . '/' . $categoryIndex;
 
@@ -87,12 +114,6 @@ class TaxCalculator
             $basePtkp = self::FALLBACK_PTKP
                 + ($maritalStatus === MaritalStatus::Married ? 4500000 : 0)
                 + ($categoryIndex * self::ADDITIONAL_DEPENDENT_PTKP);
-        }
-
-        // Additional dependents beyond 3
-        if ($dependents > 3) {
-            $extra = ($dependents - 3) * self::ADDITIONAL_DEPENDENT_PTKP;
-            $basePtkp += $extra;
         }
 
         return $basePtkp;
@@ -112,38 +133,55 @@ class TaxCalculator
     /**
      * Calculate PPh21 monthly tax for an employee.
      *
-     * @param float $monthlyGrossSalary
+     * Regular income (base + fixed allowances) is annualized ×12 and its tax
+     * spread across the year. Irregular income (bonus/THR/overtime) must NOT be
+     * annualized — annualizing it inflates the taxable base 12× and massively
+     * over-taxes the employee. Instead, the irregular amount is added to the
+     * annual base once, and only the incremental tax it produces is charged in
+     * the month it is paid.
+     *
+     * @param float $monthlyRegularGross Recurring monthly gross (base + fixed allowances)
      * @param float $monthlyBpjsEmployeeDeductions Total employee-paid BPJS per month
      * @param MaritalStatus|null $maritalStatus
      * @param int $dependents Number of dependents (tanggungan)
-     * @return float Monthly PPh21
+     * @param float $irregularIncome One-off income this month (bonus/THR/overtime), added once
+     * @return float Monthly PPh21 for this period
      */
     public function calculateMonthly(
-        float $monthlyGrossSalary,
+        float $monthlyRegularGross,
         float $monthlyBpjsEmployeeDeductions = 0,
         ?MaritalStatus $maritalStatus = null,
         int $dependents = 0,
+        float $irregularIncome = 0,
     ): float {
-        $annualGross = $monthlyGrossSalary * 12;
-
-        // Position allowance (biaya jabatan): 5% of gross, max Rp 6,000,000/year
-        $positionAllowance = min($annualGross * 0.05, 6000000);
-
         $annualBpjsDeductions = $monthlyBpjsEmployeeDeductions * 12;
 
         // Dynamic PTKP based on employee tax profile
         $ptkp = $this->getPtkp($maritalStatus, $dependents);
 
-        // Taxable income (PKP - Penghasilan Kena Pajak)
-        $pkp = $annualGross - $positionAllowance - $annualBpjsDeductions - $ptkp;
+        // --- Regular income: annualized and spread across 12 months ---
+        $annualRegularGross = $monthlyRegularGross * 12;
+        $regularPositionAllowance = min($annualRegularGross * 0.05, 6000000);
+        $pkpRegular = $annualRegularGross - $regularPositionAllowance - $annualBpjsDeductions - $ptkp;
+        $annualRegularTax = $pkpRegular > 0 ? $this->calculateProgressiveTax($pkpRegular) : 0;
+        $monthlyRegularTax = $annualRegularTax / 12;
 
-        if ($pkp <= 0) {
-            return 0;
+        // Fast path: no irregular income — behaves exactly as the annualized
+        // regular-only calculation (preserves existing monthly results).
+        if ($irregularIncome <= 0) {
+            return round($monthlyRegularTax, 2);
         }
 
-        $annualTax = $this->calculateProgressiveTax($pkp);
+        // --- Add irregular income once and charge only its incremental tax ---
+        $annualGrossWithIrregular = $annualRegularGross + $irregularIncome;
+        $totalPositionAllowance = min($annualGrossWithIrregular * 0.05, 6000000);
+        $pkpTotal = $annualGrossWithIrregular - $totalPositionAllowance - $annualBpjsDeductions - $ptkp;
+        $annualTotalTax = $pkpTotal > 0 ? $this->calculateProgressiveTax($pkpTotal) : 0;
 
-        return round($annualTax / 12, 2);
+        // Tax attributable to the irregular income, charged in full this month
+        $irregularTax = max(0, $annualTotalTax - $annualRegularTax);
+
+        return round($monthlyRegularTax + $irregularTax, 2);
     }
 
     private function calculateProgressiveTax(float $pkp): float

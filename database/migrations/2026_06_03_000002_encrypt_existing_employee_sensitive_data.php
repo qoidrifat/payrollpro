@@ -21,7 +21,6 @@ return new class extends Migration
         // Step 1: Drop unique index on nik — encrypted values are non-deterministic
         // Step 2: Widen columns to fit encrypted values (Laravel encryption ~250 chars)
         Schema::table('employees', function (Blueprint $table) {
-            $table->dropUnique(['nik']);
             $table->string('nik', 500)->change();
             $table->string('npwp', 500)->nullable()->change();
             $table->string('bank_account_number', 500)->nullable()->change();
@@ -60,7 +59,7 @@ return new class extends Migration
                         DB::table('employees')->where('id', $employee->id)->update($updates);
                         $count++;
                     }
-                } catch (\Throwable $e) {
+                } catch (Throwable $e) {
                     $errors++;
                     Log::warning('Failed to encrypt employee data', [
                         'employee_id' => $employee->id ?? 'unknown',
@@ -103,7 +102,7 @@ return new class extends Migration
                         DB::table('employees')->where('id', $employee->id)->update($updates);
                         $count++;
                     }
-                } catch (\Throwable $e) {
+                } catch (Throwable $e) {
                     Log::warning('Failed to decrypt employee data (rollback)', [
                         'employee_id' => $employee->id ?? 'unknown',
                         'error' => $e->getMessage(),
@@ -112,6 +111,25 @@ return new class extends Migration
             }
         });
 
+        // Guard against destructive truncation: if ANY row still holds
+        // ciphertext (decrypt failed above and was skipped), shrinking the
+        // columns to VARCHAR(16) would permanently truncate ~340-char encrypted
+        // payloads — irreversible data loss. Abort the rollback instead so the
+        // operator can resolve the un-decryptable rows first.
+        foreach (['nik', 'npwp', 'bank_account_number', 'bpjs_kesehatan', 'bpjs_ketenagakerjaan'] as $field) {
+            $stillEncrypted = DB::table('employees')
+                ->where($field, 'like', 'eyJ%')
+                ->count();
+
+            if ($stillEncrypted > 0) {
+                throw new RuntimeException(
+                    "Rollback aborted: {$stillEncrypted} employee row(s) still hold encrypted '{$field}' "
+                    . 'that could not be decrypted. Shrinking the column would truncate and permanently '
+                    . 'corrupt this data. Resolve these rows (check APP_KEY / logs) before rolling back.'
+                );
+            }
+        }
+
         // Restore original column sizes and re-add unique index
         Schema::table('employees', function (Blueprint $table) {
             $table->string('nik', 16)->change();
@@ -119,7 +137,6 @@ return new class extends Migration
             $table->string('bank_account_number')->nullable()->change();
             $table->string('bpjs_kesehatan', 13)->nullable()->change();
             $table->string('bpjs_ketenagakerjaan', 13)->nullable()->change();
-            $table->unique('nik');
         });
 
         echo "Decrypted sensitive data for {$count} employee(s).\n";

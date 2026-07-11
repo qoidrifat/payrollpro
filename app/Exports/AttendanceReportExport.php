@@ -3,6 +3,7 @@
 namespace App\Exports;
 
 use App\Models\Employee;
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
@@ -21,10 +22,11 @@ class AttendanceReportExport implements FromCollection, WithHeadings, WithMappin
 
     public function collection(): Collection
     {
+        $start = CarbonImmutable::create($this->year, $this->month, 1);
+
         return Employee::active()
             ->with(['attendances' => fn($q) => $q
-                ->whereYear('date', $this->year)
-                ->whereMonth('date', $this->month)
+                ->whereBetween('date', [$start->toDateString(), $start->endOfMonth()->toDateString()])
             ])
             ->orderBy('first_name')
             ->get();

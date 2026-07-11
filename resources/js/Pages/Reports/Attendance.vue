@@ -12,6 +12,7 @@ const page = usePage()
 const selectedMonth = ref(page.props.filters?.month || '')
 
 const attendanceData = computed(() => page.props.attendanceData || { data: [] })
+const filters = computed(() => page.props.filters || {})
 
 const columns = [
     { key: 'employee_name', label: 'Karyawan', sortable: true },
@@ -81,6 +82,13 @@ const applyFilter = () => {
                     :columns="columns"
                     :rows="rows"
                     search-placeholder="Cari karyawan..."
+                    :server-side="true"
+                    :total="attendanceData.total"
+                    :current-page="attendanceData.current_page"
+                    :last-page="attendanceData.last_page"
+                    :per-page="attendanceData.per_page"
+                    :filters="filters"
+                    base-route="/reports/attendance"
                 >
                     <template #cell-attendance_rate="{ value }">
                         <Badge

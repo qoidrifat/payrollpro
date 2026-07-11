@@ -3,13 +3,32 @@
 namespace App\Services;
 
 use App\Models\BpjsConfig;
+use Illuminate\Support\Facades\Cache;
 
 class BpjsCalculator
 {
     private array $configs = [];
 
-    public function __construct()
+    private int $year;
+
+    public function __construct(int $year = 0)
     {
+        $this->year = $year ?: (int) date('Y');
+        $this->loadConfigs();
+    }
+
+    /**
+     * Reload BPJS config for a specific year (e.g. the payroll period year)
+     * instead of the current calendar year.
+     */
+    public function useYear(int $year): void
+    {
+        $year = $year ?: (int) date('Y');
+        if ($year === $this->year) {
+            return;
+        }
+        $this->year = $year;
+        $this->configs = [];
         $this->loadConfigs();
     }
 
@@ -19,12 +38,19 @@ class BpjsCalculator
             return; // use hardcoded default rates in calculate methods
         }
 
-        $configs = BpjsConfig::active()->forYear(date('Y'))->get();
+        $year = $this->year;
 
-        foreach ($configs as $config) {
-            $key = "{$config->type}_{$config->payer}";
-            $this->configs[$key] = $config;
-        }
+        $this->configs = Cache::remember("bpjs:configs:{$year}", 3600, function () use ($year) {
+            $configs = BpjsConfig::active()->forYear($year)->get();
+            $result = [];
+
+            foreach ($configs as $config) {
+                $key = "{$config->type}_{$config->payer}";
+                $result[$key] = $config;
+            }
+
+            return $result;
+        });
     }
 
     /**
@@ -104,10 +130,21 @@ class BpjsCalculator
         return round($monthlySalary * $rate / 100, 2);
     }
 
+    /**
+     * Statutory salary caps used when no DB config is present.
+     * Kesehatan cap: Rp12,000,000. JP cap (2024): Rp10,547,400.
+     */
+    private const FALLBACK_CAPS = [
+        'kesehatan_company' => 12000000,
+        'tk_jp_company'     => 10547400,
+    ];
+
     private function applyCap(float $salary, string $configKey): float
     {
         $config = $this->configs[$configKey] ?? null;
-        $cap = $config?->salary_cap;
+        // Fall back to the statutory cap when no config row exists — otherwise
+        // an uncapped Kesehatan/JP contribution would be over-charged.
+        $cap = $config?->salary_cap ?? (self::FALLBACK_CAPS[$configKey] ?? null);
         if ($cap && $salary > $cap) {
             return $cap;
         }

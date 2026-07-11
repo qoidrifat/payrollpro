@@ -1,19 +1,24 @@
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { Link, usePage } from '@inertiajs/vue3';
 import logoFull from '/public/logoo.png';
 import logoIcon from '/public/iconn.png';
 import {
     HomeIcon,
     UsersIcon,
+    UserGroupIcon,
     ClockIcon,
+    QrCodeIcon,
     CurrencyDollarIcon,
-    DocumentTextIcon,
     ChartBarIcon,
     CalendarDaysIcon,
     Cog6ToothIcon,
     SignalIcon,
     CodeBracketIcon,
+    BuildingOffice2Icon,
+    ClipboardDocumentCheckIcon,
+    Squares2X2Icon,
+    WrenchScrewdriverIcon,
     ChevronLeftIcon,
     ChevronRightIcon,
     Bars3Icon,
@@ -39,27 +44,77 @@ const toggleDarkMode = () => {
     document.documentElement.classList.toggle('dark', darkMode.value);
 };
 
+onMounted(() => {
+    document.documentElement.classList.toggle('dark', darkMode.value);
+});
+
 const sidebarLogo = computed(() => sidebarCollapsed.value ? logoIcon : logoFull);
 
 const user = computed(() => page.props.auth?.user);
+const isAdmin = computed(() => user.value?.roles?.includes('Admin'));
 
-const navigation = [
-    { name: 'Dashboard', href: '/dashboard', icon: HomeIcon, permission: 'view-dashboard' },
-    { name: 'Karyawan', href: '/employees', icon: UsersIcon, permission: 'manage-employees' },
-    { name: 'Absensi', href: '/attendances', icon: ClockIcon, permission: 'view-attendance' },
-    { name: 'Pengajuan Cuti', href: '/leave-requests', icon: CalendarDaysIcon, permission: 'manage-attendance' },
-    { name: 'Penggajian', href: '/payroll', icon: CurrencyDollarIcon, permission: 'view-payroll' },
-    { name: 'Laporan', href: '/reports/payroll', icon: ChartBarIcon, permission: 'view-reports' },
-    { name: 'Status Sistem', href: '/admin/status', icon: SignalIcon, permission: 'manage-settings' },
-    { name: 'API Docs', href: '/developer/api-docs', icon: CodeBracketIcon, permission: 'manage-settings' },
-    { name: 'Pengaturan', href: '/settings', icon: Cog6ToothIcon, permission: 'manage-settings' },
+const navigationGroups = [
+    {
+        key: 'overview',
+        label: 'Overview',
+        description: 'Ringkasan operasional',
+        icon: Squares2X2Icon,
+        items: [
+            { name: 'Dashboard', href: '/dashboard', icon: HomeIcon, permission: 'view-dashboard' },
+        ],
+    },
+    {
+        key: 'people',
+        label: 'People Operations',
+        description: 'Akun, karyawan, absensi',
+        icon: BuildingOffice2Icon,
+        items: [
+            { name: 'Kelola Akun', href: '/admin/accounts', icon: UserGroupIcon, permission: 'manage-settings', adminOnly: true },
+            { name: 'Karyawan', href: '/employees', icon: UsersIcon, permission: 'manage-employees' },
+            { name: 'Absensi', href: '/attendances', icon: ClockIcon, permission: 'view-attendance' },
+            { name: 'Absensi QR', href: '/my-qr', icon: QrCodeIcon, permission: 'view-attendance' },
+            { name: 'Pengajuan Manual', href: '/manual-attendance-requests', icon: ClipboardDocumentCheckIcon, permission: 'manage-attendance' },
+            { name: 'Pengajuan Cuti', href: '/leave-requests', icon: CalendarDaysIcon, permission: 'manage-attendance' },
+        ],
+    },
+    {
+        key: 'payroll',
+        label: 'Payroll & Reports',
+        description: 'Penggajian dan insight',
+        icon: ClipboardDocumentCheckIcon,
+        items: [
+            { name: 'Penggajian', href: '/payroll', icon: CurrencyDollarIcon, permission: 'view-payroll' },
+            { name: 'Laporan', href: '/reports/payroll', icon: ChartBarIcon, permission: 'view-reports' },
+        ],
+    },
+    {
+        key: 'system',
+        label: 'Admin Console',
+        description: 'Konfigurasi dan sistem',
+        icon: WrenchScrewdriverIcon,
+        adminOnly: true,
+        items: [
+            { name: 'Status Sistem', href: '/admin/status', icon: SignalIcon, permission: 'manage-settings' },
+            { name: 'API Docs', href: '/developer/api-docs', icon: CodeBracketIcon, permission: 'manage-settings' },
+            { name: 'Pengaturan', href: '/settings', icon: Cog6ToothIcon, permission: 'manage-settings' },
+        ],
+    },
 ];
 
-const filteredNav = computed(() =>
-    navigation.filter(item => {
-        if (!item.permission) return true;
-        return user.value?.permissions?.includes(item.permission);
-    })
+const canSeeItem = (item) => {
+    if (item.adminOnly && !isAdmin.value) return false;
+    if (!item.permission) return true;
+    return user.value?.permissions?.includes(item.permission);
+};
+
+const filteredGroups = computed(() =>
+    navigationGroups
+        .filter(group => !group.adminOnly || isAdmin.value)
+        .map(group => ({
+            ...group,
+            items: group.items.filter(canSeeItem),
+        }))
+        .filter(group => group.items.length)
 );
 </script>
 
@@ -101,21 +156,65 @@ const filteredNav = computed(() =>
             </div>
 
             <!-- Navigation -->
-            <nav class="flex-1 py-4 px-3 space-y-1 overflow-y-auto scrollbar-thin">
-                <Link
-                    v-for="item in filteredNav"
-                    :key="item.name"
-                    :href="item.href"
-                    :class="[
-                        'flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 group',
-                        page.url.startsWith(item.href)
-                            ? 'bg-primary-50 dark:bg-primary-950 text-primary-700 dark:text-primary-300'
-                            : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white',
-                    ]"
-                >
-                    <component :is="item.icon" class="w-5 h-5 flex-shrink-0" />
-                    <span v-show="!sidebarCollapsed" class="whitespace-nowrap">{{ item.name }}</span>
-                </Link>
+            <nav class="flex-1 py-4 px-3 overflow-y-auto scrollbar-thin">
+                <div class="space-y-4">
+                    <section
+                        v-for="group in filteredGroups"
+                        :key="group.key"
+                        :class="[
+                            'admin-sidebar-group',
+                            sidebarCollapsed ? 'px-0' : 'px-2.5 py-3 rounded-2xl bg-gray-50/70 dark:bg-gray-950/35 border border-gray-100/80 dark:border-gray-800/70',
+                        ]"
+                    >
+                        <div
+                            :class="[
+                                'flex items-center gap-2.5',
+                                sidebarCollapsed ? 'justify-center mb-2' : 'mb-2.5',
+                            ]"
+                            :title="sidebarCollapsed ? `${group.label} - ${group.description}` : undefined"
+                        >
+                            <div class="flex h-7 w-7 items-center justify-center rounded-lg bg-white text-gray-500 shadow-sm ring-1 ring-gray-200 dark:bg-gray-900 dark:text-gray-400 dark:ring-gray-800">
+                                <component :is="group.icon" class="h-4 w-4" />
+                            </div>
+                            <div v-show="!sidebarCollapsed" class="min-w-0">
+                                <p class="text-[11px] font-bold uppercase tracking-wide text-gray-700 dark:text-gray-200">
+                                    {{ group.label }}
+                                </p>
+                                <p class="text-[11px] leading-4 text-gray-400 dark:text-gray-500 truncate">
+                                    {{ group.description }}
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="space-y-1">
+                            <Link
+                                v-for="item in group.items"
+                                :key="item.name"
+                                :href="item.href"
+                                :title="sidebarCollapsed ? item.name : undefined"
+                                @click="mobileMenuOpen = false"
+                                :class="[
+                                    'admin-sidebar-link flex items-center gap-3 rounded-xl text-sm font-medium transition-all duration-200 group',
+                                    sidebarCollapsed ? 'justify-center px-0 py-2.5' : 'px-3 py-2.5',
+                                    page.url.startsWith(item.href)
+                                        ? 'bg-white text-primary-700 shadow-sm ring-1 ring-primary-100 dark:bg-gray-900 dark:text-primary-300 dark:ring-primary-900/60'
+                                        : 'text-gray-600 dark:text-gray-400 hover:bg-white hover:text-gray-900 hover:shadow-sm dark:hover:bg-gray-900 dark:hover:text-white',
+                                ]"
+                            >
+                                <component
+                                    :is="item.icon"
+                                    :class="[
+                                        'h-5 w-5 flex-shrink-0 transition-colors',
+                                        page.url.startsWith(item.href)
+                                            ? 'text-primary-600 dark:text-primary-300'
+                                            : 'text-gray-400 group-hover:text-gray-700 dark:group-hover:text-gray-200',
+                                    ]"
+                                />
+                                <span v-show="!sidebarCollapsed" class="whitespace-nowrap">{{ item.name }}</span>
+                            </Link>
+                        </div>
+                    </section>
+                </div>
             </nav>
 
             <!-- User Footer -->

@@ -2,7 +2,6 @@
 
 namespace App\Http\Requests\Auth;
 
-use App\Models\User;
 use Illuminate\Auth\Events\Lockout;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
@@ -43,25 +42,43 @@ class LoginRequest extends FormRequest
     {
         $this->ensureIsNotRateLimited();
 
-        $user = User::where('email', $this->string('email'))->first();
-
-        if (! $user) {
-            RateLimiter::hit($this->throttleKey());
-
-            throw ValidationException::withMessages([
-                'email' => 'Email tidak terdaftar dalam sistem kami.',
-                'login_error' => 'email_not_found',
-            ]);
-        }
-
+        // Verify credentials FIRST with a single generic failure message. This
+        // prevents user enumeration: an attacker cannot tell whether the email
+        // exists or the password was wrong — both return the same error.
         if (! Auth::attempt($this->only('email', 'password'), $this->boolean('remember'))) {
             RateLimiter::hit($this->throttleKey());
 
             throw ValidationException::withMessages([
-                'password' => 'Kata sandi yang Anda masukkan salah.',
-                'login_error' => 'wrong_password',
+                'email' => 'Email atau kata sandi salah.',
+                'login_error' => 'invalid_credentials',
             ]);
         }
+
+        // Credentials are valid — only now do we reveal account-status problems,
+        // and only to the legitimate account owner.
+        $user = Auth::user();
+
+        if ($user->isSuspended()) {
+            Auth::logout();
+            RateLimiter::hit($this->throttleKey());
+
+            throw ValidationException::withMessages([
+                'email' => 'Akun ini sedang dinonaktifkan. Hubungi admin untuk mengaktifkan kembali.',
+                'login_error' => 'account_suspended',
+            ]);
+        }
+
+        if ($user->isPending()) {
+            Auth::logout();
+            RateLimiter::hit($this->throttleKey());
+
+            throw ValidationException::withMessages([
+                'email' => 'Akun Anda masih menunggu persetujuan admin sebelum dapat masuk.',
+                'login_error' => 'account_pending',
+            ]);
+        }
+
+        $user->forceFill(['last_login_at' => now()])->save();
 
         RateLimiter::clear($this->throttleKey());
     }

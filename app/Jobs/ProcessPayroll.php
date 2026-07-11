@@ -31,7 +31,9 @@ class ProcessPayroll implements ShouldQueue
 
     /** Retry up to 3 times with exponential backoff */
     public int $tries = 3;
+
     public int $backoff = 30;
+
     public int $timeout = 600; // 10 minutes
 
     public function __construct(
@@ -40,20 +42,29 @@ class ProcessPayroll implements ShouldQueue
 
     public function handle(PayrollCalculator $calculator, PayrollAnomalyDetector $detector): void
     {
-        if (!in_array($this->payroll->status->value, ['draft', 'processing'])) {
+        $this->payroll->refresh();
+
+        if (! in_array($this->payroll->status->value, ['draft', 'processing'])) {
             Log::warning('ProcessPayroll job skipped — invalid status', [
                 'payroll_id' => $this->payroll->id,
-                'status'     => $this->payroll->status->value,
+                'status' => $this->payroll->status->value,
             ]);
+
             return;
         }
 
-        $employeeCount = Employee::active()->count();
+        // Scope to the payroll's own company. This job runs on the queue with
+        // no tenant context bound, so Employee::active() would otherwise be
+        // unscoped and pull employees from every company into one payroll.
+        $companyId = $this->payroll->company_id;
+
+        $employeeCount = Employee::forCompany($companyId)->active()->count();
 
         if ($employeeCount === 0) {
             Log::warning('ProcessPayroll job skipped — no active employees', [
                 'payroll_id' => $this->payroll->id,
             ]);
+
             return;
         }
 
@@ -63,9 +74,9 @@ class ProcessPayroll implements ShouldQueue
         // Mark as processing on first run
         if ($currentBatch === 0) {
             $this->payroll->update([
-                'status'         => 'processing',
-                'total_batches'   => $totalBatches,
-                'current_batch'   => 0,
+                'status' => 'processing',
+                'total_batches' => $totalBatches,
+                'current_batch' => 0,
                 'progress_percentage' => 0,
             ]);
         }
@@ -78,7 +89,7 @@ class ProcessPayroll implements ShouldQueue
         for ($batch = $currentBatch + 1; $batch <= $totalBatches; $batch++) {
             $offset = ($batch - 1) * self::CHUNK_SIZE;
 
-            $employees = Employee::active()
+            $employees = Employee::forCompany($companyId)->active()
                 ->orderBy('id')
                 ->skip($offset)
                 ->take(self::CHUNK_SIZE)
@@ -88,14 +99,18 @@ class ProcessPayroll implements ShouldQueue
                 break;
             }
 
-            $results = DB::transaction(function () use ($employees, $calculator) {
+            DB::transaction(function () use ($employees, $calculator) {
                 foreach ($employees as $employee) {
-                    $result = $calculator->calculateForEmployee($employee);
+                    $result = $calculator->calculateForEmployee(
+                        $employee,
+                        $this->payroll->period_start->toDateString(),
+                        $this->payroll->period_end->toDateString(),
+                    );
 
                     // upsert to handle resumable processing
                     PayrollItem::updateOrCreate(
                         [
-                            'payroll_id'  => $this->payroll->id,
+                            'payroll_id' => $this->payroll->id,
                             'employee_id' => $employee->id,
                         ],
                         $result->toArray()
@@ -107,8 +122,7 @@ class ProcessPayroll implements ShouldQueue
             $items = PayrollItem::where('payroll_id', $this->payroll->id)->get();
 
             $totalGross = $items->sum('gross_salary');
-            $totalDeductions = $items->sum(fn($i) =>
-                (float) $i->bpjs_kesehatan_employee
+            $totalDeductions = $items->sum(fn ($i) => (float) $i->bpjs_kesehatan_employee
                 + (float) $i->bpjs_tk_jht_employee
                 + (float) $i->bpjs_tk_jp_employee
                 + (float) $i->pph21
@@ -119,26 +133,25 @@ class ProcessPayroll implements ShouldQueue
             $progress = (int) round(($batch / $totalBatches) * 100);
 
             $this->payroll->update([
-                'current_batch'       => $batch,
+                'current_batch' => $batch,
                 'progress_percentage' => $progress,
-                'total_gross'         => $totalGross,
-                'total_deductions'    => $totalDeductions,
-                'total_net'           => $totalNet,
-                'total_employees'     => $items->count(),
+                'total_gross' => $totalGross,
+                'total_deductions' => $totalDeductions,
+                'total_net' => $totalNet,
+                'total_employees' => $items->count(),
             ]);
 
             Log::info('Payroll batch completed', [
                 'payroll_id' => $this->payroll->id,
-                'batch'      => "{$batch}/{$totalBatches}",
-                'progress'   => $progress . '%',
+                'batch' => "{$batch}/{$totalBatches}",
+                'progress' => $progress.'%',
             ]);
         }
 
         // Finalize
         $this->payroll->update([
-            'status'         => 'processed',
-            'processed_by'   => null, // set by controller when dispatching
-            'processed_at'   => now(),
+            'status' => 'processed',
+            'processed_at' => now(),
             'progress_percentage' => 100,
         ]);
 
@@ -147,21 +160,21 @@ class ProcessPayroll implements ShouldQueue
         $analysis = $detector->runFullAnalysis($this->payroll->id);
 
         Log::info('Payroll processing completed', [
-            'payroll_id'      => $this->payroll->id,
-            'employees'       => $this->payroll->total_employees,
-            'anomaly_issues'  => $analysis['total_issues'],
-            'anomaly_severity'=> $analysis['severity'],
+            'payroll_id' => $this->payroll->id,
+            'employees' => $this->payroll->total_employees,
+            'anomaly_issues' => $analysis['total_issues'],
+            'anomaly_severity' => $analysis['severity'],
         ]);
     }
 
     public function failed(\Throwable $e): void
     {
         Log::error('ProcessPayroll job failed', [
-            'payroll_id'     => $this->payroll->id,
-            'current_batch'  => $this->payroll->current_batch,
-            'progress'       => $this->payroll->progress_percentage . '%',
-            'error'          => $e->getMessage(),
-            'trace'          => $e->getTraceAsString(),
+            'payroll_id' => $this->payroll->id,
+            'current_batch' => $this->payroll->current_batch,
+            'progress' => $this->payroll->progress_percentage.'%',
+            'error' => $e->getMessage(),
+            'trace' => $e->getTraceAsString(),
         ]);
 
         // Keep processing status so it can be resumed

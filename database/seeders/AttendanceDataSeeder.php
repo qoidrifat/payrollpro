@@ -29,10 +29,12 @@ use Illuminate\Support\Facades\DB;
 class AttendanceDataSeeder extends Seeder
 {
     private const START_DATE = '2026-01-01';
+
     private const END_DATE = '2026-05-31';
 
     /** Office GPS (Bangkalan, Madura) */
     private const OFFICE_LAT = -7.0280;
+
     private const OFFICE_LNG = 112.7480;
 
     /**
@@ -55,7 +57,7 @@ class AttendanceDataSeeder extends Seeder
 
     public function run(): void
     {
-        $this->info('Generating realistic attendance: ' . self::START_DATE . ' → ' . self::END_DATE);
+        $this->info('Generating realistic attendance: '.self::START_DATE.' → '.self::END_DATE);
 
         // Hapus data absensi lama sebelum generate ulang
         Attendance::query()->delete();
@@ -64,6 +66,7 @@ class AttendanceDataSeeder extends Seeder
 
         if ($employees->isEmpty()) {
             $this->info('No active employees found. Run DummyDataSeeder first.');
+
             return;
         }
 
@@ -81,6 +84,7 @@ class AttendanceDataSeeder extends Seeder
 
             if ($this->isHoliday($dateStr)) {
                 $current->addDay();
+
                 continue;
             }
 
@@ -128,14 +132,14 @@ class AttendanceDataSeeder extends Seeder
             // [punctuality, absenceRate, remotePref, saturdayChance, overtimeChance]
             // punctuality: 0.0=punctual, 1.0=always late
             // absenceRate: probability of unplanned absence on any given day
-            'Senior Developer'    => [0.15, 0.02, 0.20, 0.40, 0.30],
-            'UI/UX Designer'      => [0.25, 0.03, 0.35, 0.10, 0.20],
-            'Junior Developer'    => [0.30, 0.04, 0.15, 0.30, 0.25],
-            'Project Manager'     => [0.05, 0.01, 0.25, 0.15, 0.35],
-            'System Administrator'=> [0.10, 0.02, 0.05, 0.60, 0.40],
-            'Content Writer'      => [0.20, 0.05, 0.50, 0.05, 0.10],
-            'Digital Marketer'    => [0.22, 0.04, 0.30, 0.08, 0.15],
-            'Finance & HR'        => [0.08, 0.02, 0.10, 0.10, 0.20],
+            'Senior Developer' => [0.15, 0.02, 0.20, 0.40, 0.30],
+            'UI/UX Designer' => [0.25, 0.03, 0.35, 0.10, 0.20],
+            'Junior Developer' => [0.30, 0.04, 0.15, 0.30, 0.25],
+            'Project Manager' => [0.05, 0.01, 0.25, 0.15, 0.35],
+            'System Administrator' => [0.10, 0.02, 0.05, 0.60, 0.40],
+            'Content Writer' => [0.20, 0.05, 0.50, 0.05, 0.10],
+            'Digital Marketer' => [0.22, 0.04, 0.30, 0.08, 0.15],
+            'Finance & HR' => [0.08, 0.02, 0.10, 0.10, 0.20],
         ];
 
         foreach ($employees as $emp) {
@@ -143,9 +147,9 @@ class AttendanceDataSeeder extends Seeder
             $tpl = $templateProfiles[$key] ?? [0.20, 0.03, 0.20, 0.15, 0.20];
 
             $this->profiles[$emp->id] = [
-                'punctuality'    => $tpl[0],
-                'absenceRate'    => $tpl[1],
-                'remotePref'     => $tpl[2],
+                'punctuality' => $tpl[0],
+                'absenceRate' => $tpl[1],
+                'remotePref' => $tpl[2],
                 'saturdayChance' => $tpl[3],
                 'overtimeChance' => $tpl[4],
             ];
@@ -181,9 +185,9 @@ class AttendanceDataSeeder extends Seeder
     private function defaultProfile(): array
     {
         return [
-            'punctuality'    => 0.20,
-            'absenceRate'    => 0.03,
-            'remotePref'     => 0.20,
+            'punctuality' => 0.20,
+            'absenceRate' => 0.03,
+            'remotePref' => 0.20,
             'saturdayChance' => 0.15,
             'overtimeChance' => 0.20,
         ];
@@ -197,7 +201,8 @@ class AttendanceDataSeeder extends Seeder
     private function worksSaturday($employee, array $profile): bool
     {
         // Some departments work rotating Saturdays
-        $seed = crc32($employee->id . '_' . date('W'));
+        $seed = crc32($employee->id.'_'.date('W'));
+
         return ($seed % 100) < ($profile['saturdayChance'] * 100);
     }
 
@@ -207,12 +212,13 @@ class AttendanceDataSeeder extends Seeder
         $type = $this->resolveType($profile);
 
         $record = [
+            'company_id' => $employee->company_id,
             'employee_id' => $employee->id,
-            'date'        => $dateStr,
-            'status'      => $status['status'],
-            'type'        => $type,
-            'notes'       => $status['notes'] ?? null,
-            'created_by'  => 'AttendanceSeeder',
+            'date' => $dateStr,
+            'status' => $status['status'],
+            'type' => $type,
+            'notes' => $status['notes'] ?? null,
+            'created_by' => 'AttendanceSeeder',
         ];
 
         // Only working statuses get clock times
@@ -255,7 +261,7 @@ class AttendanceDataSeeder extends Seeder
             $events = [];
 
             foreach ($months as $month => $info) {
-                $monthSeed = crc32($emp->id . '_' . $month);
+                $monthSeed = crc32($emp->id.'_'.$month);
 
                 // Annual leave: one block per month (unless unlucky)
                 if (($monthSeed % 100) < 60) { // 60% chance of leave each month
@@ -264,7 +270,7 @@ class AttendanceDataSeeder extends Seeder
                     $notes = match ($leaveDuration) {
                         1 => 'Cuti tahunan',
                         2 => 'Cuti tahunan (2 hari)',
-                        default => 'Cuti tahunan (' . $leaveDuration . ' hari)',
+                        default => 'Cuti tahunan ('.$leaveDuration.' hari)',
                     };
                     for ($d = 0; $d < $leaveDuration; $d++) {
                         $day = $leaveStartDay + $d;
@@ -279,7 +285,7 @@ class AttendanceDataSeeder extends Seeder
                 if (abs($monthSeed + 7) % 3 === 0) {
                     $sickStartDay = 10 + (abs($monthSeed + 13) % 12);
                     $sickDuration = 2 + (abs($monthSeed + 31) % 2); // 2-3 days
-                    $notes = 'Sakit' . ($sickDuration >= 3 ? ' (rawat jalan)' : '');
+                    $notes = 'Sakit'.($sickDuration >= 3 ? ' (rawat jalan)' : '');
                     for ($d = 0; $d < $sickDuration; $d++) {
                         $day = $sickStartDay + $d;
                         if ($day <= $info['days']) {
@@ -359,7 +365,7 @@ class AttendanceDataSeeder extends Seeder
             $clockOutMin = random_int(0, 30);
 
             return [
-                'clock_in'  => sprintf('%02d:%02d:00', $clockInHour, $clockInMin),
+                'clock_in' => sprintf('%02d:%02d:00', $clockInHour, $clockInMin),
                 'clock_out' => sprintf('%02d:%02d:00', $clockOutHour, $clockOutMin),
             ];
         }
@@ -392,13 +398,13 @@ class AttendanceDataSeeder extends Seeder
         }
 
         // Friday: slightly earlier clock-out
-        if ($dayOfWeek === 5 && !$hasOvertime) {
+        if ($dayOfWeek === 5 && ! $hasOvertime) {
             $clockOutHour = random_int(16, 17);
             $clockOutMin = random_int(0, 30);
         }
 
         return [
-            'clock_in'  => $clockIn,
+            'clock_in' => $clockIn,
             'clock_out' => sprintf('%02d:%02d:00', $clockOutHour, $clockOutMin),
         ];
     }
@@ -432,7 +438,7 @@ class AttendanceDataSeeder extends Seeder
         $lngOffset = (random_int(-200, 200) / 1000000) * 1.1;
 
         return [
-            'latitude'  => round(self::OFFICE_LAT + $latOffset, 7),
+            'latitude' => round(self::OFFICE_LAT + $latOffset, 7),
             'longitude' => round(self::OFFICE_LNG + $lngOffset, 7),
         ];
     }
@@ -442,7 +448,7 @@ class AttendanceDataSeeder extends Seeder
      */
     private function dailySeed(int $employeeId, string $dateStr): int
     {
-        return crc32($employeeId . '_' . $dateStr);
+        return crc32($employeeId.'_'.$dateStr);
     }
 
     private function info(string $message): void

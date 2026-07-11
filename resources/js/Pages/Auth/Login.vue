@@ -31,8 +31,8 @@ const submit = () => {
                 errorType.value = errors.login_error;
                 showErrorModal.value = true;
             } else if (errors.email) {
-                // Fallback: generic email error
-                errorType.value = 'email_not_found';
+                // Fallback: generic credential error (no enumeration)
+                errorType.value = 'invalid_credentials';
                 showErrorModal.value = true;
             }
         },
@@ -41,11 +41,9 @@ const submit = () => {
 
 const closeErrorModal = () => {
     showErrorModal.value = false;
-    // Focus back on the appropriate field
-    if (errorType.value === 'email_not_found') {
+    // Focus back on the email field for credential errors
+    if (errorType.value === 'invalid_credentials') {
         document.getElementById('email')?.focus();
-    } else if (errorType.value === 'wrong_password') {
-        document.getElementById('password')?.focus();
     }
     errorType.value = '';
 };

@@ -1,11 +1,12 @@
 <script setup>
 import { computed, ref, onMounted, onUnmounted } from 'vue'
-import { Link, usePage } from '@inertiajs/vue3'
+import { Link, router, usePage } from '@inertiajs/vue3'
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
 import EmployeeLayout from '@/Layouts/EmployeeLayout.vue'
 import StatCard from '@/Components/StatCard.vue'
 import PageHeader from '@/Components/PageHeader.vue'
 import Badge from '@/Components/Badge.vue'
+import { useSupabaseRealtime } from '@/composables/useSupabaseRealtime'
 import axios from 'axios'
 import {
     UsersIcon,
@@ -33,6 +34,9 @@ const Layout = computed(() => isEmployee.value ? EmployeeLayout : AuthenticatedL
 
 const liveAttendance = ref(null)
 let pollTimer = null
+let realtimeUnsubscribe = null
+let realtimeReloadTimer = null
+const realtime = useSupabaseRealtime()
 
 const fetchLiveAttendance = async () => {
     try {
@@ -43,15 +47,44 @@ const fetchLiveAttendance = async () => {
     }
 }
 
+const refreshAdminDashboard = () => {
+    fetchLiveAttendance()
+
+    if (realtimeReloadTimer) clearTimeout(realtimeReloadTimer)
+
+    realtimeReloadTimer = setTimeout(() => {
+        router.reload({
+            only: ['stats'],
+            preserveScroll: true,
+            preserveState: true,
+        })
+    }, 500)
+}
+
+const shouldPollLiveAttendance = () =>
+    !realtime.isConfigured || realtime.status.value !== 'SUBSCRIBED'
+
 onMounted(() => {
     if (!isEmployee.value) {
         fetchLiveAttendance()
-        pollTimer = setInterval(fetchLiveAttendance, 30000)
+        realtimeUnsubscribe = realtime.subscribeToNotifications({
+            channelName: 'project-kp-dashboard',
+            topics: ['attendance', 'payroll', 'leave'],
+            onChange: refreshAdminDashboard,
+        })
+
+        pollTimer = setInterval(() => {
+            if (shouldPollLiveAttendance()) {
+                fetchLiveAttendance()
+            }
+        }, 60000)
     }
 })
 
 onUnmounted(() => {
     if (pollTimer) clearInterval(pollTimer)
+    if (realtimeReloadTimer) clearTimeout(realtimeReloadTimer)
+    if (realtimeUnsubscribe) realtimeUnsubscribe()
 })
 
 const formatCurrency = (value) =>
@@ -239,19 +272,19 @@ const attendanceLabel = (status) => {
                 </div>
 
                 <!-- Quick Actions -->
-                <div class="glass-card p-6 lg:p-8">
-                    <div class="flex items-center justify-between mb-6">
+                <div class="glass-card p-5 lg:p-6">
+                    <div class="flex items-center justify-between mb-5">
                         <div>
                             <h3 class="text-lg font-display font-semibold text-gray-900 dark:text-white">Aktivitas Saya</h3>
                             <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Akses cepat ke fitur utama Anda</p>
                         </div>
                     </div>
-                    <div class="grid gap-5 grid-cols-1 sm:grid-cols-2">
+                    <div class="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
                         <Link
                             v-for="action in quickActions"
                             :key="action.label"
                             :href="action.href"
-                            class="group relative flex flex-col p-5 rounded-2xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900/50 hover:shadow-xl hover:-translate-y-0.5 hover:border-transparent transition-all duration-300 overflow-hidden"
+                            class="group relative flex min-h-[128px] flex-col p-4 rounded-xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900/50 hover:shadow-lg hover:-translate-y-0.5 hover:border-gray-200 dark:hover:border-gray-700 transition-all duration-300 overflow-hidden"
                         >
                             <!-- Background glow on hover -->
                             <div
@@ -267,16 +300,16 @@ const attendanceLabel = (status) => {
                                         :class="`absolute inset-0 bg-gradient-to-r ${action.gradient} opacity-20 blur-md group-hover:opacity-40 transition-opacity duration-500 rounded-xl`"
                                     />
                                     <div
-                                        :class="`relative w-12 h-12 rounded-xl bg-gradient-to-br ${action.gradient} flex items-center justify-center shadow-sm group-hover:shadow-lg group-hover:scale-110 transition-all duration-300`"
+                                        :class="`relative w-10 h-10 rounded-lg bg-gradient-to-br ${action.gradient} flex items-center justify-center shadow-sm group-hover:shadow-md group-hover:scale-105 transition-all duration-300`"
                                     >
-                                        <component :is="action.icon" class="w-6 h-6 text-white" />
+                                        <component :is="action.icon" class="w-5 h-5 text-white" />
                                     </div>
                                 </div>
                                 <div class="flex-1 min-w-0">
-                                    <p class="text-base font-semibold text-gray-900 dark:text-white group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors duration-300">
+                                    <p class="text-sm font-semibold text-gray-900 dark:text-white group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors duration-300">
                                         {{ action.label }}
                                     </p>
-                                    <p class="text-sm text-gray-500 dark:text-gray-400 mt-1 leading-relaxed">
+                                    <p class="line-clamp-2 text-xs text-gray-500 dark:text-gray-400 mt-1 leading-relaxed">
                                         {{ action.description }}
                                     </p>
                                     <div class="flex items-center gap-2 mt-3">
@@ -428,33 +461,33 @@ const attendanceLabel = (status) => {
                 </div>
 
                 <!-- Quick Actions -->
-                <div class="glass-card p-6 lg:p-8">
-                    <div class="flex items-center justify-between mb-6">
+                <div class="glass-card p-5 lg:p-6">
+                    <div class="flex items-center justify-between mb-5">
                         <div>
                             <h3 class="text-lg font-display font-semibold text-gray-900 dark:text-white">Aksi Cepat</h3>
                             <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Langkah cepat untuk mengelola sistem</p>
                         </div>
                     </div>
-                    <div class="grid gap-5 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+                    <div class="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
                         <Link
                             v-for="action in quickActions"
                             :key="action.label"
                             :href="action.href"
-                            class="group relative flex flex-col items-start p-5 rounded-2xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900/50 hover:shadow-lg hover:border-transparent transition-all duration-300 overflow-hidden"
+                            class="group relative flex min-h-[128px] flex-col items-start p-4 rounded-xl border border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900/50 hover:shadow-lg hover:-translate-y-0.5 hover:border-gray-200 dark:hover:border-gray-700 transition-all duration-300 overflow-hidden"
                         >
                             <div
-                                :class="`absolute inset-x-0 top-0 h-1 bg-gradient-to-r ${action.color} opacity-60 group-hover:opacity-100 transition-opacity`"
+                                :class="`absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r ${action.color} opacity-70 group-hover:opacity-100 transition-opacity`"
                             />
                             <div
-                                :class="`w-11 h-11 rounded-xl bg-gradient-to-br ${action.color} flex items-center justify-center shadow-sm group-hover:shadow-md group-hover:scale-110 transition-all duration-300`"
+                                :class="`w-10 h-10 rounded-lg bg-gradient-to-br ${action.color} flex items-center justify-center shadow-sm group-hover:shadow-md group-hover:scale-105 transition-all duration-300`"
                             >
                                 <component :is="action.icon" class="w-5 h-5 text-white" />
                             </div>
-                            <div class="mt-3">
-                                <p class="text-sm font-semibold text-gray-900 dark:text-white group-hover:text-gray-900 dark:group-hover:text-white transition-colors">{{ action.label }}</p>
-                                <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5 leading-relaxed">{{ action.description }}</p>
+                            <div class="mt-3 min-w-0">
+                                <p class="text-sm font-semibold text-gray-900 dark:text-white group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">{{ action.label }}</p>
+                                <p class="line-clamp-2 text-xs text-gray-500 dark:text-gray-400 mt-1 leading-relaxed">{{ action.description }}</p>
                             </div>
-                            <div class="mt-auto self-end pt-3">
+                            <div class="mt-auto self-end pt-2">
                                 <ArrowRightIcon class="w-4 h-4 text-gray-300 dark:text-gray-600 group-hover:text-gray-500 dark:group-hover:text-gray-400 group-hover:translate-x-1 transition-all duration-300" />
                             </div>
                         </Link>

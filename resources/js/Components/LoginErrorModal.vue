@@ -4,7 +4,7 @@ import { XCircleIcon, ExclamationTriangleIcon, XMarkIcon, ArrowPathIcon, ClockIc
 
 const props = defineProps({
     show: { type: Boolean, default: false },
-    errorType: { type: String, default: '' }, // 'email_not_found' | 'wrong_password' | 'too_many_attempts'
+    errorType: { type: String, default: '' }, // 'invalid_credentials' | 'account_suspended' | 'account_pending' | 'too_many_attempts'
 });
 
 const emit = defineEmits(['close']);
@@ -30,8 +30,9 @@ watch(() => props.show, (val) => {
 // Computed error messages based on errorType
 const errorMessage = computed(() => {
     switch (props.errorType) {
-        case 'email_not_found': return 'Email Tidak Terdaftar';
-        case 'wrong_password': return 'Kata Sandi Salah';
+        case 'invalid_credentials': return 'Login Gagal';
+        case 'account_suspended': return 'Akun Dinonaktifkan';
+        case 'account_pending': return 'Menunggu Persetujuan';
         case 'too_many_attempts': return 'Terlalu Banyak Percobaan';
         default: return 'Login Gagal';
     }
@@ -39,16 +40,20 @@ const errorMessage = computed(() => {
 
 const errorIcon = computed(() => {
     if (props.errorType === 'too_many_attempts') return ClockIcon;
-    if (props.errorType === 'wrong_password') return XCircleIcon;
+    if (props.errorType === 'invalid_credentials') return XCircleIcon;
     return ExclamationTriangleIcon;
 });
 
 const errorDetail = computed(() => {
     switch (props.errorType) {
-        case 'email_not_found':
-            return 'Alamat email yang Anda masukkan belum terdaftar di sistem kami. Periksa kembali email Anda atau hubungi administrator.';
-        case 'wrong_password':
-            return 'Kata sandi yang Anda masukkan tidak cocok dengan akun ini. Silakan coba kembali atau gunakan fitur "Lupa kata sandi".';
+        case 'invalid_credentials':
+            // Generic message — do NOT reveal whether the email or the password
+            // was wrong, to prevent account enumeration.
+            return 'Email atau kata sandi salah. Silakan periksa kembali data Anda atau gunakan fitur "Lupa kata sandi".';
+        case 'account_suspended':
+            return 'Akun ini sedang dinonaktifkan. Hubungi administrator untuk mengaktifkan kembali.';
+        case 'account_pending':
+            return 'Akun Anda masih menunggu persetujuan admin sebelum dapat masuk. Silakan coba lagi setelah disetujui.';
         case 'too_many_attempts':
             return 'Terlalu banyak percobaan login yang gagal. Akun Anda telah dikunci sementara demi keamanan. Silakan tunggu beberapa saat sebelum mencoba lagi.';
         default:
@@ -128,63 +133,6 @@ onUnmounted(() => {
                                     <p class="text-sm text-gray-500 dark:text-gray-400 leading-relaxed">
                                         {{ errorDetail }}
                                     </p>
-                                </div>
-
-                                <!-- Field Indicator (only for email/password errors) -->
-                                <div
-                                    v-if="errorType === 'email_not_found' || errorType === 'wrong_password'"
-                                    class="mb-6 p-3 rounded-xl bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-800"
-                                >
-                                    <div class="flex items-center gap-3">
-                                        <div
-                                            :class="[
-                                                'flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold',
-                                                errorType === 'email_not_found'
-                                                    ? 'bg-red-100 dark:bg-red-900/50 text-red-600 dark:text-red-400'
-                                                    : 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500',
-                                            ]"
-                                        >
-                                            @
-                                        </div>
-                                        <div class="min-w-0">
-                                            <p class="text-xs font-medium text-gray-500 dark:text-gray-400">Email</p>
-                                            <p
-                                                :class="[
-                                                    'text-sm font-semibold truncate',
-                                                    errorType === 'email_not_found'
-                                                        ? 'text-red-600 dark:text-red-400'
-                                                        : 'text-emerald-600 dark:text-emerald-400',
-                                                ]"
-                                            >
-                                                {{ errorType === 'email_not_found' ? '✗ Tidak ditemukan' : '✓ Terdaftar' }}
-                                            </p>
-                                        </div>
-                                    </div>
-                                    <div class="mt-2 pt-2 border-t border-gray-100 dark:border-gray-700 flex items-center gap-3">
-                                        <div
-                                            :class="[
-                                                'flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center text-xs font-bold',
-                                                errorType === 'wrong_password'
-                                                    ? 'bg-red-100 dark:bg-red-900/50 text-red-600 dark:text-red-400'
-                                                    : 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500',
-                                            ]"
-                                        >
-                                            <span class="text-base leading-none">🔒</span>
-                                        </div>
-                                        <div class="min-w-0">
-                                            <p class="text-xs font-medium text-gray-500 dark:text-gray-400">Kata Sandi</p>
-                                            <p
-                                                :class="[
-                                                    'text-sm font-semibold truncate',
-                                                    errorType === 'wrong_password'
-                                                        ? 'text-red-600 dark:text-red-400'
-                                                        : 'text-emerald-600 dark:text-emerald-400',
-                                                ]"
-                                            >
-                                                {{ errorType === 'wrong_password' ? '✗ Salah' : '✓ Sesuai' }}
-                                            </p>
-                                        </div>
-                                    </div>
                                 </div>
 
                                 <!-- Action -->

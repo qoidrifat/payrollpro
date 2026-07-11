@@ -48,6 +48,8 @@ class LeaveRequestController extends Controller
 
     public function approve(LeaveRequest $leaveRequest): RedirectResponse
     {
+        $this->ensureNotSelfReview($leaveRequest);
+
         if ($leaveRequest->status !== ApprovalStatus::Pending) {
             return back()->with('error', 'Pengajuan cuti ini sudah diproses.');
         }
@@ -64,6 +66,8 @@ class LeaveRequestController extends Controller
 
     public function reject(Request $request, LeaveRequest $leaveRequest): RedirectResponse
     {
+        $this->ensureNotSelfReview($leaveRequest);
+
         if ($leaveRequest->status !== ApprovalStatus::Pending) {
             return back()->with('error', 'Pengajuan cuti ini sudah diproses.');
         }
@@ -83,5 +87,21 @@ class LeaveRequestController extends Controller
         ]);
 
         return back()->with('success', 'Pengajuan cuti berhasil ditolak.');
+    }
+
+    /**
+     * A reviewer (Admin/HR who is also an employee) must not approve or reject
+     * their own leave request. Tenant isolation is already enforced by the
+     * BelongsToCompany global scope on route-model binding.
+     */
+    private function ensureNotSelfReview(LeaveRequest $leaveRequest): void
+    {
+        $reviewerEmployeeId = auth()->user()?->employee?->id;
+
+        abort_if(
+            $reviewerEmployeeId !== null && $reviewerEmployeeId === $leaveRequest->employee_id,
+            403,
+            'Anda tidak dapat meninjau pengajuan cuti milik Anda sendiri.'
+        );
     }
 }

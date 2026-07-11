@@ -4,7 +4,9 @@ namespace App\Repositories\Eloquent;
 
 use App\Models\Employee;
 use App\Repositories\EmployeeRepositoryInterface;
+use App\Scopes\TenantScope;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Collection;
 
 class EloquentEmployeeRepository implements EmployeeRepositoryInterface
@@ -46,12 +48,35 @@ class EloquentEmployeeRepository implements EmployeeRepositoryInterface
 
     public function paginateWithFilters(array $filters, int $perPage = 10): LengthAwarePaginator
     {
+        $search = $filters['search'] ?? null;
+        $normalizedNik = $search ? Employee::normalizeNik($search) : null;
+        $nikHash = $normalizedNik ? Employee::hashNik($normalizedNik) : null;
+        $sort = $this->sortColumn($filters['sort'] ?? null);
+        $dir = strtolower($filters['dir'] ?? 'desc') === 'asc' ? 'asc' : 'desc';
+
         return Employee::query()
-            ->when($filters['search'] ?? null, fn($q, $s) => $q->where(function ($q) use ($s) {
+            ->select([
+                'id',
+                'company_id',
+                'user_id',
+                'nik',
+                'first_name',
+                'last_name',
+                'position',
+                'department',
+                'employment_status',
+                'is_active',
+                'created_at',
+                'updated_at',
+            ])
+            ->when($search, fn($q, $s) => $q->where(function ($q) use ($s, $nikHash) {
                 $q->where('first_name', 'like', "%{$s}%")
                   ->orWhere('last_name', 'like', "%{$s}%")
-                  ->orWhere('nik', 'like', "%{$s}%")
                   ->orWhere('position', 'like', "%{$s}%");
+
+                if ($nikHash) {
+                    $q->orWhere('nik_hash', $nikHash);
+                }
             }))
             ->when($filters['status'] ?? null, fn($q, $s) => match ($s) {
                 'active' => $q->where('is_active', true),
@@ -59,18 +84,37 @@ class EloquentEmployeeRepository implements EmployeeRepositoryInterface
                 default => $q,
             })
             ->when($filters['department'] ?? null, fn($q, $d) => $q->where('department', $d))
-            ->orderBy($filters['sort'] ?? 'created_at', $filters['dir'] ?? 'desc')
+            ->orderBy($sort, $dir)
+            ->when(($filters['sort'] ?? null) === 'full_name', fn($q) => $q->orderBy('last_name', $dir))
             ->paginate($perPage)
             ->withQueryString();
     }
 
     public function getDepartments(): Collection
     {
-        return Employee::distinct()->whereNotNull('department')->pluck('department');
+        $companyId = TenantScope::currentCompanyId() ?? 'global';
+
+        return Cache::remember("employees:departments:{$companyId}", 600, fn() => Employee::query()
+            ->distinct()
+            ->whereNotNull('department')
+            ->orderBy('department')
+            ->pluck('department'));
     }
 
     public function countActive(): int
     {
         return Employee::active()->count();
+    }
+
+    private function sortColumn(?string $sort): string
+    {
+        return match ($sort) {
+            'full_name', 'first_name' => 'first_name',
+            'position' => 'position',
+            'department' => 'department',
+            'employment_status' => 'employment_status',
+            'created_at' => 'created_at',
+            default => 'created_at',
+        };
     }
 }

@@ -2,12 +2,13 @@
 
 namespace App\Models;
 
+use App\Traits\BelongsToCompany;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class OfficeLocation extends Model
 {
-    use HasFactory;
+    use BelongsToCompany, HasFactory;
 
     protected $fillable = [
         'company_id', 'name', 'address',
@@ -24,11 +25,6 @@ class OfficeLocation extends Model
             'is_active'      => 'boolean',
             'is_primary'     => 'boolean',
         ];
-    }
-
-    public function company()
-    {
-        return $this->belongsTo(Company::class);
     }
 
     public function scopeActive($query)

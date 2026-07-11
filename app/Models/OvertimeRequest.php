@@ -54,7 +54,7 @@ class OvertimeRequest extends Model
 
     public function scopeForDate($query, string $date)
     {
-        return $query->where('date', $date);
+        return $query->whereDate('date', $date);
     }
 
     public function scopeApproved($query)

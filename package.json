@@ -22,6 +22,7 @@
     },
     "dependencies": {
         "@heroicons/vue": "^2.2.0",
+        "@supabase/supabase-js": "2.107.0",
         "apexcharts": "^5.11.0",
         "qrcode": "^1.5.4",
         "vue3-apexcharts": "^1.11.1"

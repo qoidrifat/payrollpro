@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { Link, usePage } from '@inertiajs/vue3';
 import logoFull from '/public/logoo.png';
 import {
@@ -21,8 +21,13 @@ const toggleDarkMode = () => {
     document.documentElement.classList.toggle('dark', darkMode.value);
 };
 
+onMounted(() => {
+    document.documentElement.classList.toggle('dark', darkMode.value);
+});
+
 const user = computed(() => page.props.auth?.user);
 const isOnDashboard = computed(() => page.url.startsWith('/dashboard'));
+const isOnMyQr = computed(() => page.url.startsWith('/my-qr'));
 </script>
 
 <template>
@@ -31,23 +36,10 @@ const isOnDashboard = computed(() => page.url.startsWith('/dashboard'));
         <header class="sticky top-0 z-40 bg-white/80 dark:bg-gray-950/80 backdrop-blur-xl border-b border-gray-200 dark:border-gray-800 shadow-sm">
             <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div class="flex items-center justify-between h-16">
-                    <!-- Left: Logo / Back Button (mutually exclusive) -->
+                    <!-- Left: Logo -->
                     <div class="flex items-center">
-                        <!-- Logo (dashboard only) -->
-                        <Link v-if="isOnDashboard" href="/dashboard" class="flex-shrink-0 group">
+                        <Link href="/dashboard" class="flex-shrink-0 group">
                             <img :src="logoFull" alt="PayrollPro" class="h-9 w-auto transition-transform duration-200 group-hover:scale-[1.02]" />
-                        </Link>
-
-                        <!-- Back button (sub-pages only) -->
-                        <Link
-                            v-else
-                            href="/dashboard"
-                            class="inline-flex items-center gap-2.5 px-3 py-2 -ml-2 rounded-xl text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-200 group"
-                        >
-                            <span class="flex items-center justify-center w-7 h-7 rounded-lg bg-gray-100 dark:bg-gray-800 group-hover:bg-white dark:group-hover:bg-gray-700 transition-colors duration-200">
-                                <ArrowLeftIcon class="w-4 h-4" />
-                            </span>
-                            <span class="hidden sm:inline font-medium">Kembali</span>
                         </Link>
                     </div>
 
@@ -162,7 +154,24 @@ const isOnDashboard = computed(() => page.url.startsWith('/dashboard'));
         </header>
 
         <!-- Page Content with consistent max-width -->
-        <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 lg:py-8">
+        <main
+            :class="[
+                'max-w-7xl mx-auto px-4 sm:px-6 lg:px-8',
+                isOnMyQr ? 'py-3 lg:py-3' : 'py-6 lg:py-8',
+            ]"
+        >
+            <div v-if="!isOnDashboard" :class="isOnMyQr ? 'mb-3' : 'mb-5'">
+                <Link
+                    href="/dashboard"
+                    :class="[
+                        'inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white text-sm font-medium text-gray-600 shadow-sm transition-all duration-200 hover:border-gray-300 hover:bg-gray-50 hover:text-gray-900 active:scale-[0.98] dark:border-gray-800 dark:bg-gray-900 dark:text-gray-300 dark:hover:border-gray-700 dark:hover:bg-gray-800 dark:hover:text-white',
+                        isOnMyQr ? 'px-3 py-1.5' : 'px-3.5 py-2',
+                    ]"
+                >
+                    <ArrowLeftIcon class="w-4 h-4" />
+                    Kembali ke Dashboard
+                </Link>
+            </div>
             <slot />
         </main>
     </div>

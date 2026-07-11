@@ -4,6 +4,8 @@ namespace App\Providers;
 
 use App\Listeners\LogFailedLogin;
 use App\Listeners\LogPasswordChange;
+use App\Models\ManualAttendanceRequest;
+use App\Policies\ManualAttendanceRequestPolicy;
 use App\Repositories\AttendanceRepositoryInterface;
 use App\Repositories\Eloquent\EloquentAttendanceRepository;
 use App\Repositories\Eloquent\EloquentEmployeeRepository;
@@ -15,7 +17,9 @@ use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Notifications\DatabaseNotification;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\Vite;
 use Illuminate\Support\ServiceProvider;
 
@@ -32,7 +36,7 @@ class AppServiceProvider extends ServiceProvider
         // (not PHP constants), so Dompdf falls through to extension_loaded().
         // This define() MUST be in a service provider (not config/dompdf.php)
         // because config cache skips the original source's inline code.
-        if (!defined('DOMPDF_ENABLE_IMAGICK')) {
+        if (! defined('DOMPDF_ENABLE_IMAGICK')) {
             define('DOMPDF_ENABLE_IMAGICK', false);
         }
 
@@ -48,6 +52,15 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Vite::prefetch(concurrency: 3);
+        Gate::policy(ManualAttendanceRequest::class, ManualAttendanceRequestPolicy::class);
+
+        // ─── Force HTTPS in production ───────────────────────────────
+        // Render terminates SSL at edge, but Laravel needs explicit
+        // scheme forcing so generated URLs (route(), asset(), etc.)
+        // use https:// instead of http://.
+        if ($this->app->environment('production')) {
+            URL::forceScheme('https');
+        }
 
         // Route-model binding for Laravel's native DatabaseNotification
         app('router')->bind('notification', function (string $value) {

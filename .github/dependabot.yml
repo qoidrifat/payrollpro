@@ -1,0 +1,97 @@
+# Dependabot Configuration — Automated Dependency Monitoring
+# Docs: https://docs.github.com/en/code-security/dependabot
+
+version: 2
+
+updates:
+  # ─── PHP / Composer ───────────────────────────────────────────────
+  - package-ecosystem: "composer"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "07:00"
+      timezone: "Asia/Jakarta"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "php"
+    # Group non-core dev dependencies to reduce PR noise
+    groups:
+      dev-dependencies:
+        applies-to: version-updates
+        dependency-type: "development"
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+      laravel:
+        applies-to: version-updates
+        patterns:
+          - "laravel/*"
+        update-types:
+          - "minor"
+          - "patch"
+    # Auto-allow all direct dependency updates
+    allow:
+      - dependency-type: "direct"
+        update-type: "all"
+    # Ignore major version bumps that may need manual migration
+    ignore:
+      - dependency-name: "laravel/framework"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "phpunit/phpunit"
+        update-types: ["version-update:semver-major"]
+    commit-message:
+      prefix: "chore(deps)"
+      prefix-development: "chore(deps-dev)"
+      include: "scope"
+
+  # ─── npm / JavaScript ─────────────────────────────────────────────
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "07:00"
+      timezone: "Asia/Jakarta"
+    open-pull-requests-limit: 10
+    labels:
+      - "dependencies"
+      - "javascript"
+    # Group patch & minor version updates
+    groups:
+      production-dependencies:
+        dependency-type: "production"
+        update-types:
+          - "minor"
+          - "patch"
+      dev-dependencies:
+        dependency-type: "development"
+        patterns:
+          - "*"
+    allow:
+      - dependency-type: "direct"
+    ignore:
+      - dependency-name: "vue"
+        update-types: ["version-update:semver-major"]
+    commit-message:
+      prefix: "chore(deps)"
+      prefix-development: "chore(deps-dev)"
+      include: "scope"
+
+  # ─── GitHub Actions ───────────────────────────────────────────────
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "07:00"
+      timezone: "Asia/Jakarta"
+    labels:
+      - "dependencies"
+      - "ci"
+    commit-message:
+      prefix: "chore(ci)"
+      include: "scope"

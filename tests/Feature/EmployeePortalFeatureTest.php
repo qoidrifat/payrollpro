@@ -13,6 +13,7 @@ class EmployeePortalFeatureTest extends TestCase
     use RefreshDatabase;
 
     private User $employeeUser;
+
     private Employee $employee;
 
     protected function setUp(): void
@@ -96,8 +97,8 @@ class EmployeePortalFeatureTest extends TestCase
 
         $response = $this->actingAs($user)->post('/portal/leaves', [
             'leave_type' => 'annual',
-            'start_date' => '2026-06-10',
-            'end_date' => '2026-06-11',
+            'start_date' => now()->addDay()->toDateString(),
+            'end_date' => now()->addDays(2)->toDateString(),
             'reason' => 'Family matter',
         ]);
 

@@ -55,7 +55,7 @@ class Company extends Model
      */
     public function getSetting(string $key, mixed $default = null): mixed
     {
-        return $this->settings[$key]
+        return ($this->settings ?? [])[$key]
             ?? app(\App\Services\SettingService::class)->get($key, $default);
     }
 }

@@ -64,21 +64,20 @@ class BpjsCalculatorTest extends TestCase
 
     public function test_kesehatan_capped_salary(): void
     {
-        // With no DB config, cap won't be applied (no cap config)
-        // So it should use the default rates
+        // No DB config → statutory fallback cap Rp12,000,000 applies.
         $result = $this->calculator->calculateKesehatan(50000000);
 
-        $this->assertEquals(2000000, $result['company']);  // 4%
-        $this->assertEquals(500000, $result['employee']);  // 1%
+        $this->assertEquals(480000, $result['company']);  // 4% of 12,000,000
+        $this->assertEquals(120000, $result['employee']); // 1% of 12,000,000
     }
 
     public function test_jp_capped_salary(): void
     {
+        // No DB config → statutory fallback cap Rp10,547,400 applies.
         $result = $this->calculator->calculateJp(50000000);
 
-        // With no DB config, no cap, so uses full salary
-        $this->assertEquals(1000000, $result['company']);  // 2%
-        $this->assertEquals(500000, $result['employee']);  // 1%
+        $this->assertEquals(210948, $result['company']);  // 2% of 10,547,400
+        $this->assertEquals(105474, $result['employee']); // 1% of 10,547,400
     }
 
     public function test_zero_salary(): void

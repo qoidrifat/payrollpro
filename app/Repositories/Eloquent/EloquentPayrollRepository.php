@@ -41,8 +41,8 @@ class EloquentPayrollRepository implements PayrollRepositoryInterface
         return Payroll::query()
             ->when($employeeId, fn($q) => $q->whereHas('items', fn($q) => $q->where('employee_id', $employeeId)))
             ->when($filters['status'] ?? null, fn($q, $s) => $q->where('status', $s))
-            ->when($filters['date_from'] ?? null, fn($q, $d) => $q->whereDate('period_end', '>=', $d))
-            ->when($filters['date_to'] ?? null, fn($q, $d) => $q->whereDate('period_end', '<=', $d))
+            ->when($filters['date_from'] ?? null, fn($q, $d) => $q->where('period_end', '>=', $d))
+            ->when($filters['date_to'] ?? null, fn($q, $d) => $q->where('period_end', '<=', $d))
             ->latest()
             ->paginate($perPage)
             ->withQueryString();

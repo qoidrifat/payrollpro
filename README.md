@@ -1,8 +1,10 @@
-# Project-KP
+<h1 align="center">Project-KP</h1>
 
-Sistem HR, absensi, payroll, dan status operasional untuk perusahaan Indonesia.
+<p align="center">
+  Sistem HR, absensi, payroll, dan status operasional untuk perusahaan Indonesia.
+</p>
 
-<p>
+<p align="center">
   <img alt="Laravel" src="https://img.shields.io/badge/Laravel-12-FF2D20?logo=laravel&logoColor=white">
   <img alt="PHP" src="https://img.shields.io/badge/PHP-8.2%2B-777BB4?logo=php&logoColor=white">
   <img alt="Vue" src="https://img.shields.io/badge/Vue-3-4FC08D?logo=vue.js&logoColor=white">
@@ -14,6 +16,8 @@ Sistem HR, absensi, payroll, dan status operasional untuk perusahaan Indonesia.
 ## Ringkasan
 
 Project-KP adalah aplikasi Laravel + Vue/Inertia untuk mengelola data karyawan, absensi, komponen gaji, pemrosesan payroll, slip gaji, laporan, employee self-service, dan status layanan. Sistem ini dirancang untuk kebutuhan HR/payroll lokal Indonesia, termasuk BPJS, PPh21, PTKP, role-based access, audit trail, dan data dummy realistis untuk demo.
+
+Project ini dikembangkan sebagai tugas magang di PT. Maqna Tech Lab, perusahaan teknologi yang berbasis di Bangkalan, Jawa Timur.
 
 Repository saat ini sudah berisi implementasi aplikasi yang cukup luas: service layer, action classes, repository pattern, model multi-tenant, queue jobs, scheduled commands, CI, dan test suite backend.
 
@@ -98,7 +102,6 @@ Yang perlu diperhatikan:
 
 - Ada satu warning PHPUnit: metadata di doc-comment akan deprecated di PHPUnit 12. Ubah annotation test terkait menjadi attribute PHP.
 - Ada dua workflow GitHub Actions (`ci.yml` dan `tests.yml`) dengan versi PHP berbeda. Ini bisa dipertahankan, tapi lebih rapi jika distandarkan.
-- Repository belum memiliki file `LICENSE`, meskipun `composer.json` menyatakan `MIT`.
 - File lokal seperti `.env`, `database/database.sqlite`, `.phpunit.result.cache`, `bash.exe.stackdump`, `.gstack/`, dan `.claude/settings.local.json` tidak boleh masuk GitHub.
 
 ## Fitur Utama
@@ -165,9 +168,9 @@ project-kp/
 - PHP 8.2 atau lebih baru
 - Composer 2
 - Node.js 20 dan npm
-- MySQL 8 atau SQLite untuk development
+- MySQL 8, PostgreSQL/Supabase, atau SQLite untuk development
 - Redis jika memakai konfigurasi default `.env.example`
-- PHP extensions: `bcmath`, `ctype`, `dom`, `fileinfo`, `gd`, `json`, `mbstring`, `openssl`, `pdo`, `pdo_mysql` atau `pdo_sqlite`, `tokenizer`, `xml`, `zip`
+- PHP extensions: `bcmath`, `ctype`, `dom`, `fileinfo`, `gd`, `json`, `mbstring`, `openssl`, `pdo`, `pdo_mysql`, `pdo_pgsql` atau `pdo_sqlite`, `tokenizer`, `xml`, `zip`
 
 ## Instalasi Lokal
 
@@ -203,6 +206,18 @@ DB_PORT=3306
 DB_DATABASE=project_kp
 DB_USERNAME=root
 DB_PASSWORD=
+```
+
+### Opsi database Supabase/PostgreSQL
+
+```env
+DB_CONNECTION=pgsql
+DB_HOST=db.your-project-ref.supabase.co
+DB_PORT=5432
+DB_DATABASE=postgres
+DB_USERNAME=postgres
+DB_PASSWORD=your-supabase-database-password
+DB_SSLMODE=require
 ```
 
 ### Queue, cache, dan session lokal
@@ -445,4 +460,4 @@ bash.exe.stackdump
 
 ## Lisensi
 
-`composer.json` menyatakan lisensi `MIT`. Jika repository akan dipublikasikan, tambahkan file `LICENSE` agar status lisensi eksplisit dan lengkap.
+Project ini dirilis menggunakan lisensi MIT. Lihat file [LICENSE](https://opensource.org/license/mit) untuk detail lengkap.

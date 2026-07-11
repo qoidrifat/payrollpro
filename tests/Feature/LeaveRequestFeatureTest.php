@@ -4,7 +4,9 @@ namespace Tests\Feature;
 
 use App\Models\Employee;
 use App\Models\LeaveRequest;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Spatie\Permission\Models\Role;
 use Tests\Concerns\WithAdminUser;
 use Tests\TestCase;
 
@@ -98,6 +100,35 @@ class LeaveRequestFeatureTest extends TestCase
             'id' => $leaveRequest->id,
             'status' => 'approved',
             'approved_by' => $this->admin->id,
+        ]);
+    }
+
+    public function test_hr_cannot_review_their_own_leave_request(): void
+    {
+        Role::firstOrCreate(['name' => 'HR']);
+
+        $employee = Employee::factory()->create();
+        $hr = User::factory()->create(['company_id' => $employee->company_id]);
+        $employee->forceFill(['user_id' => $hr->id])->save();
+        $hr->assignRole('HR');
+
+        $leaveRequest = LeaveRequest::create([
+            'company_id' => $employee->company_id,
+            'employee_id' => $employee->id,
+            'leave_type' => 'annual',
+            'start_date' => now()->addWeek()->toDateString(),
+            'end_date' => now()->addWeek()->addDays(2)->toDateString(),
+            'total_days' => 3,
+            'reason' => 'Cuti pribadi HR.',
+            'status' => 'pending',
+        ]);
+
+        $response = $this->actingAs($hr)->post(route('leave-requests.approve', $leaveRequest));
+
+        $response->assertForbidden();
+        $this->assertDatabaseHas('leave_requests', [
+            'id' => $leaveRequest->id,
+            'status' => 'pending',
         ]);
     }
 

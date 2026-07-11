@@ -19,11 +19,21 @@ class SettingRepository
 
     public function set(string $key, mixed $value, string $group = 'general', string $type = 'text'): void
     {
+        $previousGroup = Setting::where('key', $key)->value('group');
+
         Setting::updateOrCreate(
             ['key' => $key],
             ['value' => $value, 'group' => $group, 'type' => $type]
         );
+
+        // Clear both cache key patterns used across the app
         Cache::forget("setting:{$key}");
+        Cache::forget("setting:value:{$key}");
+        Cache::forget("settings:group:{$group}");
+
+        if ($previousGroup && $previousGroup !== $group) {
+            Cache::forget("settings:group:{$previousGroup}");
+        }
     }
 
     public function getByGroup(string $group): array

@@ -10,17 +10,19 @@ class DatabaseSeeder extends Seeder
     {
         $this->call([
             // Urutan seeding:
-            // 1. Admin user & role/permission
+            // 1. Default company context
+            CompanySeeder::class,
+            // 2. Admin user & role/permission
             AdminUserSeeder::class,
-            // 2. Konfigurasi BPJS, PPh21, dan PTKP (untuk kalkulasi payroll)
+            // 3. Konfigurasi BPJS, PPh21, dan PTKP (untuk kalkulasi payroll)
             BpjsConfigSeeder::class,
             Pph21ConfigSeeder::class,
             PtkpConfigSeeder::class,
-            // 3. Data dummy: karyawan, komponen gaji, payroll
+            // 4. Data dummy: karyawan, komponen gaji, payroll
             DummyDataSeeder::class,
-            // 4. Relasi user ke employee
+            // 5. Relasi user ke employee
             EmployeeUserSeeder::class,
-            // 5. Data absensi lengkap Jan-Jun 2026
+            // 6. Data absensi lengkap Jan-Jun 2026
             AttendanceDataSeeder::class,
         ]);
     }

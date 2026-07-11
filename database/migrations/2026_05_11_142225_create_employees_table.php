@@ -11,10 +11,10 @@ return new class extends Migration
         Schema::create('employees', function (Blueprint $table) {
             $table->id();
             $table->foreignId('user_id')->nullable()->constrained()->nullOnDelete();
-            $table->string('nik', 16)->unique();
-            $table->string('npwp', 16)->nullable();
-            $table->string('bpjs_kesehatan', 13)->nullable();
-            $table->string('bpjs_ketenagakerjaan', 13)->nullable();
+            $table->string('nik', 500);
+            $table->string('npwp', 500)->nullable();
+            $table->string('bpjs_kesehatan', 500)->nullable();
+            $table->string('bpjs_ketenagakerjaan', 500)->nullable();
             $table->string('first_name');
             $table->string('last_name')->nullable();
             $table->enum('gender', ['male', 'female']);
@@ -25,7 +25,7 @@ return new class extends Migration
             $table->enum('employment_status', ['permanent', 'contract', 'probation', 'intern']);
             $table->decimal('base_salary', 15, 2)->default(0);
             $table->string('bank_name')->nullable();
-            $table->string('bank_account_number')->nullable();
+            $table->string('bank_account_number', 500)->nullable();
             $table->string('bank_account_name')->nullable();
             $table->string('phone')->nullable();
             $table->text('address')->nullable();

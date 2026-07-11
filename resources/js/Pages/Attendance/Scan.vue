@@ -7,20 +7,31 @@ const page = usePage();
 const employee = page.props.employee;
 const todayRecord = page.props.todayRecord;
 const action = page.props.action; // 'in' or 'out'
+const attendanceToken = page.props.attendance_token;
 
 const status = ref('ready'); // ready | success | error
 const message = ref('');
-const time = ref(new Date().toLocaleTimeString('id-ID'));
+// Attendance is WIB-based; render the clock in Asia/Jakarta regardless of the
+// device timezone so the "WIB" label is accurate.
+const wibTime = () => new Date().toLocaleTimeString('id-ID', { timeZone: 'Asia/Jakarta' });
+const time = ref(wibTime());
 let timer = null;
 
 const clockInOut = () => {
+    if (!employee?.id) {
+        status.value = 'error';
+        message.value = 'Data karyawan tidak ditemukan. Silakan hubungi admin.';
+        return;
+    }
     status.value = 'loading';
-    router.post(`/scan/clock-${action}/${employee.id}`, {}, {
+    router.post(`/scan/clock-${action}/${employee.id}`, {
+        attendance_token: attendanceToken,
+    }, {
         onSuccess: () => {
             status.value = 'success';
             message.value = action === 'in'
-                ? `Clock In berhasil — ${new Date().toLocaleTimeString('id-ID')} WIB`
-                : `Clock Out berhasil — ${new Date().toLocaleTimeString('id-ID')} WIB`;
+                ? `Clock In berhasil — ${wibTime()} WIB`
+                : `Clock Out berhasil — ${wibTime()} WIB`;
         },
         onError: (errors) => {
             status.value = 'error';
@@ -31,7 +42,7 @@ const clockInOut = () => {
 
 onMounted(() => {
     timer = setInterval(() => {
-        time.value = new Date().toLocaleTimeString('id-ID');
+        time.value = wibTime();
     }, 1000);
     // Auto clock in/out on scan
     if (todayRecord && action === 'in' && todayRecord.clock_in) {

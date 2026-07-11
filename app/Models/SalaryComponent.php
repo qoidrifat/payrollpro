@@ -47,4 +47,24 @@ class SalaryComponent extends Model
     {
         return $query->where('is_active', true);
     }
+
+    /**
+     * Limit to components effective during a period.
+     *
+     * A component applies if it started on/before the period end and has not
+     * ended before the period start. NULL dates mean "open-ended" (always
+     * effective on that side).
+     */
+    public function scopeEffectiveForPeriod($query, string $periodStart, string $periodEnd)
+    {
+        return $query
+            ->where(function ($q) use ($periodEnd) {
+                $q->whereNull('effective_from')
+                    ->orWhereDate('effective_from', '<=', $periodEnd);
+            })
+            ->where(function ($q) use ($periodStart) {
+                $q->whereNull('effective_until')
+                    ->orWhereDate('effective_until', '>=', $periodStart);
+            });
+    }
 }

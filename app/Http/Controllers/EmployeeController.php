@@ -101,7 +101,7 @@ class EmployeeController extends Controller
         Gate::authorize('create', Employee::class);
 
         $request->validate([
-            'file' => 'required|file|mimes:xlsx,xls,csv',
+            'file' => 'required|file|mimes:xlsx,xls,csv|extensions:xlsx,xls,csv',
         ]);
 
         $result = $this->importEmployees->execute($request->file('file'));

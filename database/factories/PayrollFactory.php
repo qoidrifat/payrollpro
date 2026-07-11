@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Models\Company;
 use App\Models\Payroll;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
@@ -12,7 +13,8 @@ class PayrollFactory extends Factory
     public function definition(): array
     {
         return [
-            'name' => 'Payroll ' . $this->faker->monthName() . ' ' . $this->faker->year(),
+            'company_id' => Company::query()->where('is_active', true)->value('id') ?? Company::query()->value('id'),
+            'name' => 'Payroll '.$this->faker->monthName().' '.$this->faker->year(),
             'period_start' => now()->startOfMonth()->toDateString(),
             'period_end' => now()->endOfMonth()->toDateString(),
             'status' => 'draft',

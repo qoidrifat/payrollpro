@@ -13,38 +13,26 @@ return new class extends Migration
     {
         // Attendances: composite index for employee + date queries
         // (already has unique(employee_id, date) but adding explicit index)
-        Schema::table('attendances', function (Blueprint $table) {
-            $table->index(['employee_id', 'date', 'status'], 'idx_attendances_employee_date_status');
-        });
+        $this->addIndexIfMissing('attendances', ['employee_id', 'date', 'status'], 'idx_attendances_employee_date_status');
 
         // Payroll items: composite index for payroll + employee lookups
         // (already has unique(payroll_id, employee_id) but adding status/date support)
-        Schema::table('payroll_items', function (Blueprint $table) {
-            $table->index(['employee_id', 'created_at'], 'idx_payroll_items_employee_created');
-        });
+        $this->addIndexIfMissing('payroll_items', ['employee_id', 'created_at'], 'idx_payroll_items_employee_created');
 
         // Activity logs: composite index for polymorphic lookups
         // (already has index on subject_type + subject_id)
         // Adding index on action + created_at for filtering + sorting
-        Schema::table('activity_logs', function (Blueprint $table) {
-            $table->index(['action', 'created_at'], 'idx_activity_logs_action_date');
-        });
+        $this->addIndexIfMissing('activity_logs', ['action', 'created_at'], 'idx_activity_logs_action_date');
 
         // Employees: indexes for common filters
-        Schema::table('employees', function (Blueprint $table) {
-            $table->index(['department', 'is_active'], 'idx_employees_department_active');
-            $table->index(['position', 'is_active'], 'idx_employees_position_active');
-        });
+        $this->addIndexIfMissing('employees', ['department', 'is_active'], 'idx_employees_department_active');
+        $this->addIndexIfMissing('employees', ['position', 'is_active'], 'idx_employees_position_active');
 
         // Payrolls: index for period-based queries
-        Schema::table('payrolls', function (Blueprint $table) {
-            $table->index(['status', 'period_end'], 'idx_payrolls_status_period');
-        });
+        $this->addIndexIfMissing('payrolls', ['status', 'period_end'], 'idx_payrolls_status_period');
 
         // Notifications: index for user + read_at
-        Schema::table('notifications', function (Blueprint $table) {
-            $table->index(['notifiable_id', 'read_at'], 'idx_notifications_user_read');
-        });
+        $this->addIndexIfMissing('notifications', ['notifiable_id', 'read_at'], 'idx_notifications_user_read');
     }
 
     /**
@@ -52,29 +40,54 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('attendances', function (Blueprint $table) {
-            $table->dropIndex('idx_attendances_employee_date_status');
-        });
+        $this->dropIndexIfExists('attendances', 'idx_attendances_employee_date_status');
+        $this->dropIndexIfExists('payroll_items', 'idx_payroll_items_employee_created');
+        $this->dropIndexIfExists('activity_logs', 'idx_activity_logs_action_date');
+        $this->dropIndexIfExists('employees', 'idx_employees_department_active');
+        $this->dropIndexIfExists('employees', 'idx_employees_position_active');
+        $this->dropIndexIfExists('payrolls', 'idx_payrolls_status_period');
+        $this->dropIndexIfExists('notifications', 'idx_notifications_user_read');
+    }
 
-        Schema::table('payroll_items', function (Blueprint $table) {
-            $table->dropIndex('idx_payroll_items_employee_created');
-        });
+    /**
+     * Add a named index only when the table and all its columns exist and the
+     * index is not already present. Keeps the migration re-runnable across
+     * partial schemas and drivers that lack IF NOT EXISTS support.
+     */
+    private function addIndexIfMissing(string $table, array $columns, string $indexName): void
+    {
+        if (! Schema::hasTable($table) || ! Schema::hasColumns($table, $columns)) {
+            return;
+        }
 
-        Schema::table('activity_logs', function (Blueprint $table) {
-            $table->dropIndex('idx_activity_logs_action_date');
-        });
+        if ($this->indexExists($table, $indexName)) {
+            return;
+        }
 
-        Schema::table('employees', function (Blueprint $table) {
-            $table->dropIndex('idx_employees_department_active');
-            $table->dropIndex('idx_employees_position_active');
+        Schema::table($table, function (Blueprint $blueprint) use ($columns, $indexName) {
+            $blueprint->index($columns, $indexName);
         });
+    }
 
-        Schema::table('payrolls', function (Blueprint $table) {
-            $table->dropIndex('idx_payrolls_status_period');
-        });
+    private function dropIndexIfExists(string $table, string $indexName): void
+    {
+        if (! Schema::hasTable($table) || ! $this->indexExists($table, $indexName)) {
+            return;
+        }
 
-        Schema::table('notifications', function (Blueprint $table) {
-            $table->dropIndex('idx_notifications_user_read');
+        Schema::table($table, function (Blueprint $blueprint) use ($indexName) {
+            $blueprint->dropIndex($indexName);
         });
+    }
+
+    private function indexExists(string $table, string $indexName): bool
+    {
+        foreach (Schema::getIndexes($table) as $index) {
+            if (($index['name'] ?? null) === $indexName) {
+                return true;
+            }
+        }
+
+        return false;
     }
 };

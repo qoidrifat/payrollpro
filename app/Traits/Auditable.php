@@ -36,6 +36,7 @@ trait Auditable
     protected function getAuditableAttributes(): array
     {
         $exclude = ['id', 'created_at', 'updated_at', 'deleted_at', 'password', 'remember_token'];
+
         return array_diff_key($this->getAttributes(), array_flip($exclude));
     }
 
@@ -46,23 +47,49 @@ trait Auditable
         $beforeScalar = $before ? $this->scalarizeValues($before) : null;
         $afterScalar = $after ? $this->scalarizeValues($after) : null;
 
+        // Deteksi perubahan dihitung dari nilai asli agar tetap akurat,
+        // baru nilai sensitif diredaksi sebelum disimpan ke log.
+        $changed = ($beforeScalar && $afterScalar)
+            ? $this->changedAuditKeys($beforeScalar, $afterScalar)
+            : [];
+
         ActivityLog::create([
-            'user_id'      => auth()?->id(),
-            'action'       => $action,
-            'description'  => $this->getAuditDescription($action),
+            'user_id' => auth()?->id(),
+            'action' => $action,
+            'description' => $this->getAuditDescription($action),
             'subject_type' => static::class,
-            'subject_id'   => $this->getKey(),
-            'properties'   => [
-                'before'     => $beforeScalar,
-                'after'      => $afterScalar,
-                'changed'    => ($beforeScalar && $afterScalar)
-                    ? array_keys(array_diff_assoc($afterScalar, $beforeScalar))
-                    : [],
-                'fingerprint'=> $fingerprint,
+            'subject_id' => $this->getKey(),
+            'properties' => [
+                'before' => $beforeScalar ? $this->redactAuditValues($beforeScalar) : null,
+                'after' => $afterScalar ? $this->redactAuditValues($afterScalar) : null,
+                'changed' => $changed,
+                'fingerprint' => $fingerprint,
             ],
-            'ip_address'   => $fingerprint['ip_address'],
-            'user_agent'   => $fingerprint['user_agent'],
+            'ip_address' => $fingerprint['ip_address'],
+            'user_agent' => $fingerprint['user_agent'],
         ]);
+    }
+
+    /**
+     * Attribute names whose values must never be written to the audit log
+     * (PII / secrets / encrypted identity & financial fields). The audit log
+     * still records THAT the field changed, but replaces the value with a
+     * redaction marker. Override in the model to customize.
+     */
+    protected function auditRedactedAttributes(): array
+    {
+        return [];
+    }
+
+    private function redactAuditValues(array $values): array
+    {
+        foreach ($this->auditRedactedAttributes() as $key) {
+            if (array_key_exists($key, $values) && $values[$key] !== null) {
+                $values[$key] = '[redacted]';
+            }
+        }
+
+        return $values;
     }
 
     /**
@@ -71,24 +98,65 @@ trait Auditable
      */
     private function scalarizeValues(array $values): array
     {
-        return array_map(function ($value) {
-            if ($value instanceof \BackedEnum) {
-                return $value->value;
+        return array_map(fn ($value) => $this->scalarizeAuditValue($value), $values);
+    }
+
+    private function scalarizeAuditValue(mixed $value): mixed
+    {
+        if ($value instanceof \BackedEnum) {
+            return $value->value;
+        }
+
+        if ($value instanceof \UnitEnum) {
+            return $value->name;
+        }
+
+        if ($value instanceof \DateTimeInterface) {
+            return $value->format('Y-m-d H:i:s');
+        }
+
+        if (is_array($value)) {
+            return $this->scalarizeValues($value);
+        }
+
+        if (is_object($value)) {
+            return method_exists($value, '__toString')
+                ? (string) $value
+                : $this->scalarizeValues(get_object_vars($value));
+        }
+
+        return $value;
+    }
+
+    private function changedAuditKeys(array $before, array $after): array
+    {
+        $keys = array_unique([...array_keys($before), ...array_keys($after)]);
+
+        return array_values(array_filter($keys, function (string|int $key) use ($before, $after) {
+            if (! array_key_exists($key, $before) || ! array_key_exists($key, $after)) {
+                return true;
             }
-            if ($value instanceof \UnitEnum) {
-                return $value->name;
-            }
-            if ($value instanceof \DateTimeInterface) {
-                return $value->format('Y-m-d H:i:s');
-            }
-            return $value;
-        }, $values);
+
+            return $this->comparableAuditValue($before[$key]) !== $this->comparableAuditValue($after[$key]);
+        }));
+    }
+
+    private function comparableAuditValue(mixed $value): string
+    {
+        if (is_array($value)) {
+            ksort($value);
+        }
+
+        $encoded = json_encode($value, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+
+        return $encoded === false ? serialize($value) : $encoded;
     }
 
     protected function getAuditDescription(string $action): string
     {
         $modelName = class_basename(static::class);
         $identifier = $this->getAuditIdentifier();
+
         return "{$modelName} '{$identifier}' was {$action}";
     }
 

@@ -4,20 +4,19 @@ namespace App\Http\Controllers;
 
 use App\Events\EmployeeClockedIn;
 use App\Events\EmployeeClockedOut;
-use App\Actions\Attendance\RecordClockIn;
-use App\Actions\Attendance\RecordClockOut;
 use App\Http\Requests\BulkAttendanceRequest;
 use App\Http\Requests\ClockInRequest;
 use App\Http\Requests\ClockOutRequest;
 use App\Http\Requests\StoreAttendanceRequest;
 use App\Http\Requests\UpdateAttendanceRequest;
-use App\Http\Resources\AttendanceResource;
-use App\Models\ActivityLog;
 use App\Models\Attendance;
 use App\Models\Employee;
+use App\Models\ManualAttendanceRequest;
 use App\Repositories\AttendanceRepositoryInterface;
+use App\Services\AttendanceOperationalHours;
 use App\Services\SecurityLogger;
 use App\Services\ShiftService;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -25,45 +24,42 @@ use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Str;
-use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 
 class AttendanceController extends Controller
 {
     public function __construct(
         private readonly AttendanceRepositoryInterface $attendanceRepository,
-        private readonly RecordClockIn $recordClockIn,
-        private readonly RecordClockOut $recordClockOut,
         private readonly ShiftService $shiftService,
+        private readonly AttendanceOperationalHours $operationalHours,
     ) {}
 
-    private const MAX_CLOCK_IN_MINUTE = 390;  // 06:30
-    private const MAX_CLOCK_OUT_MINUTE = 1020; // 17:00
     private const SIGNED_URL_TTL_MINUTES = 5;
+
     private const ATTENDANCE_TOKEN_TTL_MINUTES = 5;
 
     /**
      * Generate a signed URL for QR scan (for frontend to embed in QR code).
      */
-    public function getSignedUrl(Request $request, Employee $employee, string $action): \Illuminate\Http\RedirectResponse
+    public function getSignedUrl(Request $request, Employee $employee, string $action): RedirectResponse
     {
         $this->authorizeAccessEmployee($employee);
 
-        $url = match ($action) {
-            'in'  => route('scan.in', ['employee' => $employee]),
-            'out' => route('scan.out', ['employee' => $employee]),
+        $routeName = match ($action) {
+            'in' => 'scan.in',
+            'out' => 'scan.out',
             default => abort(400, 'Invalid action.'),
         };
 
         $signedUrl = URL::signedRoute(
-            $action === 'in' ? 'scan.in' : 'scan.out',
+            $routeName,
             ['employee' => $employee->id],
             now()->addMinutes(self::SIGNED_URL_TTL_MINUTES)
         );
 
         SecurityLogger::log('qr_signed_url_generated', [
             'employee_id' => $employee->id,
-            'action'      => $action,
+            'action' => $action,
         ]);
 
         return redirect()->to($signedUrl);
@@ -77,7 +73,7 @@ class AttendanceController extends Controller
     {
         $user = request()->user();
 
-        if (!$user) {
+        if (! $user) {
             SecurityLogger::unauthorizedAccess('employee_attendance', [
                 'employee_id' => $employee->id,
             ]);
@@ -94,7 +90,7 @@ class AttendanceController extends Controller
 
         SecurityLogger::unauthorizedAccess('employee_attendance', [
             'employee_id' => $employee->id,
-            'user_id'     => $user->id,
+            'user_id' => $user->id,
         ]);
         abort(403, 'Unauthorized access to employee attendance.');
     }
@@ -118,10 +114,10 @@ class AttendanceController extends Controller
         $availableMonths = $this->attendanceRepository->getAvailableMonths();
 
         return Inertia::render('Attendances/Index', [
-            'attendances'     => $attendances,
-            'total'           => $attendances->total(),
+            'attendances' => $attendances,
+            'total' => $attendances->total(),
             'availableMonths' => $availableMonths,
-            'filters'         => $request->only(['search', 'date', 'status', 'type', 'month', 'sort', 'dir', 'per_page']),
+            'filters' => $request->only(['search', 'date', 'status', 'type', 'month', 'sort', 'dir', 'per_page']),
         ]);
     }
 
@@ -153,7 +149,7 @@ class AttendanceController extends Controller
                 // Prevent duplicate attendance for employee + date
                 $existing = Attendance::lockForUpdate()
                     ->where('employee_id', $validated['employee_id'])
-                    ->where('date', $validated['date'])
+                    ->whereDate('date', $validated['date'])
                     ->first();
 
                 if ($existing) {
@@ -163,14 +159,17 @@ class AttendanceController extends Controller
                 return Attendance::create([
                     ...$validated,
                     'created_by' => $request->user()->name,
+                    // Admin/HR entries are manual, not QR scans — don't let the
+                    // column default ('qr') mislabel the record source.
+                    'source' => 'manual',
                 ]);
             });
 
             if ($attendance->wasRecentlyCreated) {
                 SecurityLogger::log('attendance_created', [
                     'attendance_id' => $attendance->id,
-                    'employee_id'   => $attendance->employee_id,
-                    'date'          => $attendance->date,
+                    'employee_id' => $attendance->employee_id,
+                    'date' => $attendance->date,
                 ]);
 
                 return redirect()->route('attendances.index')
@@ -182,9 +181,9 @@ class AttendanceController extends Controller
         } catch (\Exception $e) {
             Log::error('Attendance creation failed', [
                 'employee_id' => $validated['employee_id'],
-                'date'        => $validated['date'],
-                'error'       => $e->getMessage(),
-                'trace'       => $e->getTraceAsString(),
+                'date' => $validated['date'],
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
             ]);
 
             return redirect()->route('attendances.index')
@@ -203,7 +202,7 @@ class AttendanceController extends Controller
 
         return Inertia::render('Attendances/Form', [
             'attendance' => $attendance,
-            'employees'  => $employees,
+            'employees' => $employees,
         ]);
     }
 
@@ -219,8 +218,8 @@ class AttendanceController extends Controller
 
             SecurityLogger::log('attendance_updated', [
                 'attendance_id' => $attendance->id,
-                'employee_id'   => $attendance->employee_id,
-                'date'          => $attendance->date,
+                'employee_id' => $attendance->employee_id,
+                'date' => $attendance->date,
             ]);
 
             return redirect()->route('attendances.index')
@@ -228,8 +227,8 @@ class AttendanceController extends Controller
         } catch (\Exception $e) {
             Log::error('Attendance update failed', [
                 'attendance_id' => $attendance->id,
-                'error'         => $e->getMessage(),
-                'trace'         => $e->getTraceAsString(),
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
             ]);
 
             return redirect()->route('attendances.index')
@@ -249,8 +248,8 @@ class AttendanceController extends Controller
 
             SecurityLogger::log('attendance_deleted', [
                 'attendance_id' => $attendance->id,
-                'employee_id'   => $attendance->employee_id,
-                'date'          => $attendance->date,
+                'employee_id' => $attendance->employee_id,
+                'date' => $attendance->date,
             ]);
 
             return redirect()->route('attendances.index')
@@ -258,8 +257,8 @@ class AttendanceController extends Controller
         } catch (\Exception $e) {
             Log::error('Attendance deletion failed', [
                 'attendance_id' => $attendance->id,
-                'error'         => $e->getMessage(),
-                'trace'         => $e->getTraceAsString(),
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
             ]);
 
             return redirect()->route('attendances.index')
@@ -279,23 +278,38 @@ class AttendanceController extends Controller
         try {
             DB::transaction(function () use ($validated, $request) {
                 foreach ($validated['employee_ids'] as $employeeId) {
-                    Attendance::updateOrCreate(
-                        ['employee_id' => $employeeId, 'date' => $validated['date']],
-                        [
-                            'status'      => $validated['status'],
-                            'type'        => $validated['type'],
-                            'clock_in'    => $validated['clock_in'] ?? null,
-                            'clock_out'   => $validated['clock_out'] ?? null,
-                            'notes'       => $validated['notes'] ?? null,
-                            'created_by'  => $request->user()->name,
-                        ]
-                    );
+                    // Lock any existing row for this employee+date first to avoid
+                    // a race between concurrent bulk submissions.
+                    $existing = Attendance::lockForUpdate()
+                        ->where('employee_id', $employeeId)
+                        ->whereDate('date', $validated['date'])
+                        ->first();
+
+                    $payload = [
+                        'status' => $validated['status'],
+                        'type' => $validated['type'],
+                        'clock_in' => $validated['clock_in'] ?? null,
+                        'clock_out' => $validated['clock_out'] ?? null,
+                        'notes' => $validated['notes'] ?? null,
+                        'created_by' => $request->user()->name,
+                        'source' => 'manual',
+                    ];
+
+                    if ($existing) {
+                        $existing->update($payload);
+                    } else {
+                        Attendance::create([
+                            'employee_id' => $employeeId,
+                            'date' => $validated['date'],
+                            ...$payload,
+                        ]);
+                    }
                 }
             });
 
             SecurityLogger::log('attendance_bulk_created', [
                 'employee_count' => count($validated['employee_ids']),
-                'date'           => $validated['date'],
+                'date' => $validated['date'],
             ]);
 
             return redirect()->route('attendances.index')
@@ -303,8 +317,8 @@ class AttendanceController extends Controller
         } catch (\Exception $e) {
             Log::error('Bulk attendance creation failed', [
                 'employee_ids' => $validated['employee_ids'],
-                'error'        => $e->getMessage(),
-                'trace'        => $e->getTraceAsString(),
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
             ]);
 
             return redirect()->route('attendances.index')
@@ -317,16 +331,91 @@ class AttendanceController extends Controller
      */
     public function myQr()
     {
-        if (!$this->shouldScopeToEmployee()) {
-            return redirect()->route('attendances.create');
+        $serverNow = $this->operationalHours->now();
+        $isOperational = $this->operationalHours->isOperational($serverNow);
+        $refreshIntervalSeconds = (int) config('attendance.qr.refresh_interval_seconds', self::SIGNED_URL_TTL_MINUTES * 60);
+        $expiresAt = $serverNow->addSeconds($refreshIntervalSeconds);
+        $attendanceWindow = [
+            ...$this->operationalHours->props($serverNow),
+            'label' => $this->operationalHours->label(),
+        ];
+
+        if ($this->shouldScopeToEmployee()) {
+            $employeeId = $this->getEmployeeIdIfScoped();
+            $employee = Employee::findOrFail($employeeId);
+
+            return Inertia::render('Attendance/MyQr', [
+                'mode' => 'employee',
+                'employee' => $this->serializeQrEmployee($employee, $isOperational ? $expiresAt : null),
+                'employees' => [],
+                'manualRequests' => $this->serializeManualAttendanceRequests($employee),
+                'attendanceWindow' => $attendanceWindow,
+                'qrRefreshIntervalSeconds' => $refreshIntervalSeconds,
+                'qrExpiresAt' => $isOperational ? $expiresAt->toIso8601String() : null,
+                'nextQrRefreshAt' => $isOperational ? $expiresAt->toIso8601String() : null,
+            ]);
         }
 
-        $employeeId = $this->getEmployeeIdIfScoped();
-        $employee = Employee::findOrFail($employeeId);
+        Gate::authorize('viewAny', Attendance::class);
+
+        $employees = Employee::active()
+            ->orderBy('first_name')
+            ->orderBy('last_name')
+            ->get(['id', 'first_name', 'last_name', 'position', 'department', 'is_active'])
+            ->map(fn (Employee $employee) => $this->serializeQrEmployee($employee, $isOperational ? $expiresAt : null))
+            ->values();
 
         return Inertia::render('Attendance/MyQr', [
-            'employee' => $employee,
+            'mode' => 'admin',
+            'employee' => $employees->first(),
+            'employees' => $employees,
+            'manualRequests' => [],
+            'attendanceWindow' => $attendanceWindow,
+            'qrRefreshIntervalSeconds' => $refreshIntervalSeconds,
+            'qrExpiresAt' => $isOperational ? $expiresAt->toIso8601String() : null,
+            'nextQrRefreshAt' => $isOperational ? $expiresAt->toIso8601String() : null,
         ]);
+    }
+
+    private function serializeQrEmployee(Employee $employee, ?\DateTimeInterface $expiresAt): array
+    {
+        return [
+            'id' => $employee->id,
+            'first_name' => $employee->first_name,
+            'last_name' => $employee->last_name,
+            'full_name' => $employee->full_name,
+            'position' => $employee->position,
+            'department' => $employee->department,
+            'qr_in_url' => $expiresAt ? URL::temporarySignedRoute('scan.in', $expiresAt, ['employee' => $employee->id]) : null,
+            'qr_out_url' => $expiresAt ? URL::temporarySignedRoute('scan.out', $expiresAt, ['employee' => $employee->id]) : null,
+        ];
+    }
+
+    private function serializeManualAttendanceRequests(Employee $employee): array
+    {
+        return ManualAttendanceRequest::with(['reviewer:id,name', 'attendance:id,clock_in,clock_out,source'])
+            ->where('employee_id', $employee->id)
+            ->whereDate('requested_date', $this->operationalHours->now()->toDateString())
+            ->latest()
+            ->get()
+            ->map(fn (ManualAttendanceRequest $manualRequest) => [
+                'id' => $manualRequest->id,
+                'request_type' => $manualRequest->request_type->value,
+                'request_type_label' => $manualRequest->request_type->value === 'manual_clock_in' ? 'Manual Clock-In' : 'Manual Clock-Out',
+                'requested_date' => $manualRequest->requested_date?->toDateString(),
+                'requested_time' => substr((string) $manualRequest->requested_time, 0, 5),
+                'reason' => $manualRequest->reason,
+                'status' => $manualRequest->status->value,
+                'reviewer' => $manualRequest->reviewer ? [
+                    'id' => $manualRequest->reviewer->id,
+                    'name' => $manualRequest->reviewer->name,
+                ] : null,
+                'reviewed_at' => $manualRequest->reviewed_at?->toIso8601String(),
+                'rejection_reason' => $manualRequest->rejection_reason,
+                'updated_at' => $manualRequest->updated_at?->toIso8601String(),
+            ])
+            ->values()
+            ->all();
     }
 
     /**
@@ -336,16 +425,21 @@ class AttendanceController extends Controller
     {
         $this->authorizeAccessEmployee($employee);
 
-        $today = now()->toDateString();
+        if (! $this->operationalHours->isOperational()) {
+            return redirect()->route('attendance.my-qr')
+                ->with('error', 'Di luar jam operasional absensi.');
+        }
+
+        $today = $this->operationalHours->now()->toDateString();
         $todayRecord = Attendance::where('employee_id', $employee->id)
             ->whereDate('date', $today)
             ->first();
 
         return Inertia::render('Attendance/Scan', [
-            'employee'         => $employee->load('salaryComponents'),
-            'todayRecord'      => $todayRecord,
-            'action'           => 'in',
-            'attendance_token' => $this->generateAttendanceToken($employee),
+            'employee' => $employee->load('salaryComponents'),
+            'todayRecord' => $todayRecord,
+            'action' => 'in',
+            'attendance_token' => $this->generateAttendanceToken($employee, 'in'),
         ]);
     }
 
@@ -356,16 +450,21 @@ class AttendanceController extends Controller
     {
         $this->authorizeAccessEmployee($employee);
 
-        $today = now()->toDateString();
+        if (! $this->operationalHours->isOperational()) {
+            return redirect()->route('attendance.my-qr')
+                ->with('error', 'Di luar jam operasional absensi.');
+        }
+
+        $today = $this->operationalHours->now()->toDateString();
         $todayRecord = Attendance::where('employee_id', $employee->id)
             ->whereDate('date', $today)
             ->first();
 
         return Inertia::render('Attendance/Scan', [
-            'employee'         => $employee->load('salaryComponents'),
-            'todayRecord'      => $todayRecord,
-            'action'           => 'out',
-            'attendance_token' => $this->generateAttendanceToken($employee),
+            'employee' => $employee->load('salaryComponents'),
+            'todayRecord' => $todayRecord,
+            'action' => 'out',
+            'attendance_token' => $this->generateAttendanceToken($employee, 'out'),
         ]);
     }
 
@@ -374,14 +473,14 @@ class AttendanceController extends Controller
      * Cache-backed tokens work across load-balanced servers without sticky sessions,
      * unlike session-based tokens which are tied to a single server.
      */
-    private function generateAttendanceToken(Employee $employee): string
+    private function generateAttendanceToken(Employee $employee, string $action): string
     {
         $token = Str::random(40);
-        $key = "attendance_token:{$employee->id}";
+        $key = "attendance_token:{$employee->id}:{$action}";
 
         Cache::put($key, [
             'token_hash' => hash('sha256', $token),
-            'ip'         => request()->ip(),
+            'ip' => request()->ip(),
             'user_agent' => request()->userAgent(),
         ], now()->addMinutes(self::ATTENDANCE_TOKEN_TTL_MINUTES));
 
@@ -395,33 +494,36 @@ class AttendanceController extends Controller
      * Cache TTL handles expiry automatically — no need for manual timestamp checks.
      * After successful validation the token is deleted (single-use) to prevent replay.
      */
-    private function validateAttendanceToken(Employee $employee, string $token): bool
+    private function validateAttendanceToken(Employee $employee, string $token, string $action): bool
     {
-        $key = "attendance_token:{$employee->id}";
+        $key = "attendance_token:{$employee->id}:{$action}";
         $stored = Cache::get($key);
 
-        if (!$stored) {
+        if (! $stored) {
             SecurityLogger::securityViolation('attendance_token_not_found', [
                 'employee_id' => $employee->id,
             ]);
+
             return false;
         }
 
-        if (!hash_equals($stored['token_hash'], hash('sha256', $token))) {
+        if (! hash_equals($stored['token_hash'], hash('sha256', $token))) {
             SecurityLogger::securityViolation('attendance_token_hash_mismatch', [
                 'employee_id' => $employee->id,
             ]);
             Cache::forget($key);
+
             return false;
         }
 
         if ($stored['ip'] !== request()->ip()) {
             SecurityLogger::securityViolation('attendance_token_ip_mismatch', [
-                'employee_id'  => $employee->id,
-                'stored_ip'    => $stored['ip'],
-                'request_ip'   => request()->ip(),
+                'employee_id' => $employee->id,
+                'stored_ip' => $stored['ip'],
+                'request_ip' => request()->ip(),
             ]);
             Cache::forget($key);
+
             return false;
         }
 
@@ -430,11 +532,13 @@ class AttendanceController extends Controller
                 'employee_id' => $employee->id,
             ]);
             Cache::forget($key);
+
             return false;
         }
 
         // Single-use: delete immediately after successful validation
         Cache::forget($key);
+
         return true;
     }
 
@@ -446,26 +550,28 @@ class AttendanceController extends Controller
     {
         $this->authorizeAccessEmployee($employee);
 
-        if (!$this->validateAttendanceToken($employee, $request->validated('attendance_token'))) {
+        if (! $this->validateAttendanceToken($employee, $request->validated('attendance_token'), 'in')) {
             SecurityLogger::securityViolation('clock_in_invalid_token', [
                 'employee_id' => $employee->id,
             ]);
+
             return redirect()->route('attendances.index')
                 ->with('error', 'Token absensi tidak valid atau sudah kadaluarsa. Silakan scan ulang QR.');
         }
 
-        $currentMinute = (int) now()->format('H') * 60 + (int) now()->format('i');
-        if ($currentMinute < self::MAX_CLOCK_IN_MINUTE || $currentMinute >= self::MAX_CLOCK_OUT_MINUTE) {
+        if (! $this->operationalHours->isOperational()) {
             SecurityLogger::securityViolation('clock_in_out_of_window', [
-                'employee_id'  => $employee->id,
-                'current_time' => now()->format('H:i'),
+                'employee_id' => $employee->id,
+                'current_time' => $this->operationalHours->now()->format('H:i'),
             ]);
-            return redirect()->back()->with('error', 'Di luar jam operasional (06:30–17:00 WIB).');
+
+            return redirect()->back()->with('error', 'Di luar jam operasional absensi.');
         }
 
-        $today = now()->toDateString();
-        $currentTime = now()->format('H:i:s');
-        $isLate = $this->shiftService->isLateForShift($employee, now()->format('H:i'));
+        $serverNow = $this->operationalHours->now();
+        $today = $serverNow->toDateString();
+        $currentTime = $serverNow->format('H:i:s');
+        $isLate = $this->shiftService->isLateForShift($employee, $serverNow->format('H:i'));
         $validated = $request->validated();
 
         try {
@@ -480,21 +586,21 @@ class AttendanceController extends Controller
                         return $attendance;
                     }
                     $attendance->update([
-                        'clock_in'  => $currentTime,
-                        'status'    => $isLate ? 'late' : 'present',
-                        'latitude'  => $validated['latitude'] ?? null,
+                        'clock_in' => $currentTime,
+                        'status' => $isLate ? 'late' : 'present',
+                        'latitude' => $validated['latitude'] ?? null,
                         'longitude' => $validated['longitude'] ?? null,
                     ]);
                 } else {
                     $attendance = Attendance::create([
                         'employee_id' => $employee->id,
-                        'date'        => $today,
-                        'clock_in'    => $currentTime,
-                        'status'      => $isLate ? 'late' : 'present',
-                        'type'        => 'wfo',
-                        'latitude'    => $validated['latitude'] ?? null,
-                        'longitude'   => $validated['longitude'] ?? null,
-                        'created_by'  => 'QR Scan',
+                        'date' => $today,
+                        'clock_in' => $currentTime,
+                        'status' => $isLate ? 'late' : 'present',
+                        'type' => 'wfo',
+                        'latitude' => $validated['latitude'] ?? null,
+                        'longitude' => $validated['longitude'] ?? null,
+                        'created_by' => 'QR Scan',
                     ]);
                 }
 
@@ -505,11 +611,12 @@ class AttendanceController extends Controller
                 EmployeeClockedIn::dispatch($employee, $attendance);
 
                 SecurityLogger::log('clock_in', [
-                    'employee_id'   => $employee->id,
+                    'employee_id' => $employee->id,
                     'attendance_id' => $attendance->id,
-                    'time'          => $currentTime,
-                    'late'          => $isLate,
+                    'time' => $currentTime,
+                    'late' => $isLate,
                 ]);
+
                 return redirect()->back()->with('success', 'Clock In berhasil!');
             }
 
@@ -517,9 +624,10 @@ class AttendanceController extends Controller
         } catch (\Exception $e) {
             Log::error('Clock in failed', [
                 'employee_id' => $employee->id,
-                'error'       => $e->getMessage(),
-                'trace'       => $e->getTraceAsString(),
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
             ]);
+
             return redirect()->back()->with('error', 'Gagal melakukan Clock In. Silakan coba lagi.');
         }
     }
@@ -532,24 +640,25 @@ class AttendanceController extends Controller
     {
         $this->authorizeAccessEmployee($employee);
 
-        if (!$this->validateAttendanceToken($employee, $request->validated('attendance_token'))) {
+        if (! $this->validateAttendanceToken($employee, $request->validated('attendance_token'), 'out')) {
             SecurityLogger::securityViolation('clock_out_invalid_token', [
                 'employee_id' => $employee->id,
             ]);
+
             return redirect()->route('attendances.index')
                 ->with('error', 'Token absensi tidak valid atau sudah kadaluarsa. Silakan scan ulang QR.');
         }
 
-        $currentMinute = (int) now()->format('H') * 60 + (int) now()->format('i');
-        if ($currentMinute < self::MAX_CLOCK_IN_MINUTE || $currentMinute >= self::MAX_CLOCK_OUT_MINUTE) {
+        if (! $this->operationalHours->isOperational()) {
             SecurityLogger::securityViolation('clock_out_out_of_window', [
-                'employee_id'  => $employee->id,
-                'current_time' => now()->format('H:i'),
+                'employee_id' => $employee->id,
+                'current_time' => $this->operationalHours->now()->format('H:i'),
             ]);
-            return redirect()->back()->with('error', 'Di luar jam operasional (07.00–17.00 WIB).');
+
+            return redirect()->back()->with('error', 'Di luar jam operasional absensi.');
         }
 
-        $today = now()->toDateString();
+        $today = $this->operationalHours->now()->toDateString();
         $validated = $request->validated();
 
         try {
@@ -559,7 +668,7 @@ class AttendanceController extends Controller
                     ->whereDate('date', $today)
                     ->first();
 
-                if (!$record) {
+                if (! $record) {
                     return ['attendance' => null, 'clocked_out' => false];
                 }
 
@@ -568,8 +677,8 @@ class AttendanceController extends Controller
                 }
 
                 $record->update([
-                    'clock_out' => now()->format('H:i:s'),
-                    'latitude'  => $validated['latitude'] ?? $record->latitude,
+                    'clock_out' => $this->operationalHours->now()->format('H:i:s'),
+                    'latitude' => $validated['latitude'] ?? $record->latitude,
                     'longitude' => $validated['longitude'] ?? $record->longitude,
                 ]);
 
@@ -583,28 +692,30 @@ class AttendanceController extends Controller
                 SecurityLogger::securityViolation('clock_out_without_clock_in', [
                     'employee_id' => $employee->id,
                 ]);
+
                 return redirect()->back()->with('error', 'Belum melakukan clock in hari ini.');
             }
 
-            if (!$clockedOut) {
+            if (! $clockedOut) {
                 return redirect()->back()->with('info', 'Anda sudah Clock Out hari ini.');
             }
 
             EmployeeClockedOut::dispatch($employee, $attendance);
 
             SecurityLogger::log('clock_out', [
-                'employee_id'   => $employee->id,
+                'employee_id' => $employee->id,
                 'attendance_id' => $attendance->id,
-                'time'          => $attendance->clock_out,
+                'time' => $attendance->clock_out,
             ]);
 
             return redirect()->back()->with('success', 'Clock Out berhasil!');
         } catch (\Exception $e) {
             Log::error('Clock out failed', [
                 'employee_id' => $employee->id,
-                'error'       => $e->getMessage(),
-                'trace'       => $e->getTraceAsString(),
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
             ]);
+
             return redirect()->back()->with('error', 'Gagal melakukan Clock Out. Silakan coba lagi.');
         }
     }
@@ -616,24 +727,26 @@ class AttendanceController extends Controller
     {
         Gate::authorize('viewAny', Attendance::class);
 
-        $today = now()->toDateString();
-        $attendances = Attendance::with('employee')
+        $today = $this->operationalHours->now()->toDateString();
+        $attendances = Attendance::query()
+            ->select(['id', 'company_id', 'employee_id', 'date', 'clock_in', 'clock_out', 'status', 'type'])
+            ->with('employee:id,company_id,first_name,last_name,position,department')
             ->whereDate('date', $today)
             ->get();
 
         return response()->json([
-            'date'     => $today,
-            'total'    => $attendances->count(),
-            'present'  => $attendances->where('status', 'present')->count(),
-            'late'     => $attendances->where('status', 'late')->count(),
-            'absent'   => $attendances->where('status', 'absent')->count(),
-            'records'  => $attendances->map(fn($a) => [
-                'id'           => $a->id,
-                'employee_name'=> $a->employee?->full_name,
-                'status'       => $a->status,
-                'type'         => $a->type,
-                'clock_in'     => $a->clock_in,
-                'clock_out'    => $a->clock_out,
+            'date' => $today,
+            'total' => $attendances->count(),
+            'present' => $attendances->where('status', 'present')->count(),
+            'late' => $attendances->where('status', 'late')->count(),
+            'absent' => $attendances->where('status', 'absent')->count(),
+            'records' => $attendances->map(fn ($a) => [
+                'id' => $a->id,
+                'employee_name' => $a->employee?->full_name,
+                'status' => $a->status,
+                'type' => $a->type,
+                'clock_in' => $a->clock_in,
+                'clock_out' => $a->clock_out,
             ]),
         ]);
     }

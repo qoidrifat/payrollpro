@@ -1,0 +1,66 @@
+# ─── Render Blueprint ──────────────────────────────────────────────────
+# Deploy: Connect this repo to Render, use "Blueprint" or "Docker" provider.
+# Render auto-detects render.yaml and provisions the service.
+# ───────────────────────────────────────────────────────────────────────
+
+services:
+  # ─── Web Service ──────────────────────────────────────────────────
+  - type: web
+    name: project-kp
+    env: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: ./
+    plan: free
+
+    # Health check — Laravel's /up route
+    healthCheckPath: /up
+
+    # Auto-deploy on every push to main branch
+    autoDeploy: true
+
+    # Environment variables
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: APP_DEBUG
+        value: "false"
+      - key: APP_KEY
+        sync: false # Set manually in Render dashboard
+      - key: APP_URL
+        value: https://project-kp.onrender.com
+      - key: DB_CONNECTION
+        value: pgsql
+      - key: DB_HOST
+        value: db.fpiceveqbvgaxdtxxbaq.supabase.co
+      - key: DB_PORT
+        value: "5432"
+      - key: DB_DATABASE
+        value: postgres
+      - key: DB_USERNAME
+        value: postgres
+      - key: DB_PASSWORD
+        sync: false # Set as secret in Render dashboard
+      - key: DB_SSLMODE
+        value: require
+      - key: SESSION_DRIVER
+        value: database
+      - key: SESSION_ENCRYPT
+        value: "true"
+      - key: SESSION_SECURE_COOKIE
+        value: "true"
+      - key: CACHE_STORE
+        value: database
+      - key: QUEUE_CONNECTION
+        value: database
+      - key: LOG_LEVEL
+        value: warning
+      - key: SANCTUM_TOKEN_PREFIX
+        value: payrollpro_
+      - key: SANCTUM_TOKEN_EXPIRATION
+        value: "10080"
+      - key: VITE_SUPABASE_REALTIME_ENABLED
+        value: "true"
+      - key: VITE_SUPABASE_URL
+        value: https://fpiceveqbvgaxdtxxbaq.supabase.co
+      - key: VITE_SUPABASE_PUBLISHABLE_KEY
+        sync: false # Set in Render dashboard

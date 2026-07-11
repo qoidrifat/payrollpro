@@ -2,13 +2,17 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\UpdateAttendanceSettingsRequest;
 use App\Http\Requests\UpdateBpjsConfigRequest;
 use App\Http\Requests\UpdatePph21ConfigRequest;
 use App\Http\Requests\UpdateSettingRequest;
+use App\Http\Requests\UpdateNotificationSettingsRequest;
 use App\Models\BpjsConfig;
 use App\Models\Pph21Config;
 use App\Services\SettingService;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -20,34 +24,52 @@ class SettingController extends Controller
     ) {}
 
     /**
-     * Display current application settings including BPJS & PPh21 configs.
+     * Display settings page with role-based sections.
+     * Admin sees all sections. HR sees attendance/operational. Employee sees personal.
      */
     public function index(): Response
     {
-        Gate::authorize('manage-settings');
+        $user = Auth::user();
+        $isAdmin = $user->hasRole('Admin');
+        $isHr = $user->hasRole('HR');
+        $isEmployee = $user->hasRole('Employee');
 
         $currentYear = date('Y');
 
-        $bpjsRates = BpjsConfig::active()
-            ->forYear($currentYear)
-            ->orderBy('type')
-            ->orderBy('payer')
-            ->get();
+        // ── Admin sections ────────────────────────────────────────────
+        $bpjsRates = [];
+        $pph21Brackets = [];
 
-        $pph21Brackets = Pph21Config::active()
-            ->forYear($currentYear)
-            ->orderBy('income_bracket_start')
-            ->get();
+        if ($isAdmin) {
+            $bpjsRates = BpjsConfig::active()
+                ->forYear($currentYear)
+                ->orderBy('type')
+                ->orderBy('payer')
+                ->get();
+
+            $pph21Brackets = Pph21Config::active()
+                ->forYear($currentYear)
+                ->orderBy('income_bracket_start')
+                ->get();
+        }
+
+        // ── Shared sections ───────────────────────────────────────────
+        $companySettings = $isAdmin ? $this->settingService->getCompanySettings() : null;
+        $attendanceSettings = ($isAdmin || $isHr) ? $this->settingService->getAttendanceSettings() : null;
+        $notificationSettings = $this->settingService->getNotificationSettings($isAdmin ? null : $user->id);
 
         return Inertia::render('Settings/Index', [
-            'settings' => $this->settingService->getCompanySettings(),
+            'role' => $isAdmin ? 'admin' : ($isHr ? 'hr' : 'employee'),
+            'companySettings' => $companySettings,
+            'attendanceSettings' => $attendanceSettings,
+            'notificationSettings' => $notificationSettings,
             'bpjsRates' => $bpjsRates,
             'pph21Brackets' => $pph21Brackets,
         ]);
     }
 
     /**
-     * Update company information settings.
+     * Update company information settings (Admin only).
      */
     public function update(UpdateSettingRequest $request): RedirectResponse
     {
@@ -61,7 +83,42 @@ class SettingController extends Controller
     }
 
     /**
-     * Update BPJS configuration rates.
+     * Update attendance operational settings (Admin & HR).
+     */
+    public function updateAttendance(UpdateAttendanceSettingsRequest $request): RedirectResponse
+    {
+        $user = Auth::user();
+        if (!$user->hasAnyRole(['Admin', 'HR'])) {
+            abort(403, 'Unauthorized action.');
+        }
+
+        $this->settingService->updateAttendanceSettings($request->validated());
+
+        return redirect()
+            ->route('settings.index')
+            ->with('success', 'Pengaturan absensi berhasil diperbarui.');
+    }
+
+    /**
+     * Update notification preferences (All roles).
+     */
+    public function updateNotifications(UpdateNotificationSettingsRequest $request): RedirectResponse
+    {
+        $user = Auth::user();
+        $isAdmin = $user->hasRole('Admin');
+
+        $this->settingService->updateNotificationSettings(
+            $request->validated(),
+            $isAdmin ? null : $user->id
+        );
+
+        return redirect()
+            ->route('settings.index')
+            ->with('success', 'Preferensi notifikasi berhasil diperbarui.');
+    }
+
+    /**
+     * Update BPJS configuration rates (Admin only).
      */
     public function updateBpjs(UpdateBpjsConfigRequest $request): RedirectResponse
     {
@@ -97,7 +154,6 @@ class SettingController extends Controller
             }
         }
 
-        // Deactivate records that were removed from the UI
         if (!empty($submittedIds)) {
             BpjsConfig::whereNotIn('id', $submittedIds)
                 ->where('is_active', true)
@@ -111,7 +167,7 @@ class SettingController extends Controller
     }
 
     /**
-     * Update PPh21 tax brackets.
+     * Update PPh21 tax brackets (Admin only).
      */
     public function updatePph21(UpdatePph21ConfigRequest $request): RedirectResponse
     {
@@ -141,7 +197,6 @@ class SettingController extends Controller
             }
         }
 
-        // Deactivate brackets that were removed from the UI
         if (!empty($submittedIds)) {
             Pph21Config::whereNotIn('id', $submittedIds)
                 ->where('is_active', true)

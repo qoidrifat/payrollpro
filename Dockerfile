@@ -7,6 +7,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libpng-dev \
     libjpeg62-turbo-dev \
     libfreetype6-dev \
+    libpq-dev \
     libonig-dev \
     libxml2-dev \
     unzip \
@@ -15,6 +16,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install -j$(nproc) \
     pdo_mysql \
+    pdo_pgsql \
     mbstring \
     xml \
     bcmath \
@@ -49,6 +51,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libpng-dev \
     libjpeg62-turbo-dev \
     libfreetype6-dev \
+    libpq-dev \
     libonig-dev \
     libxml2-dev \
     unzip \
@@ -56,6 +59,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install -j$(nproc) \
     pdo_mysql \
+    pdo_pgsql \
     mbstring \
     xml \
     bcmath \
@@ -99,7 +103,9 @@ USER www-data
 
 EXPOSE 8000
 
-CMD ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8000"]
+# Render passes a dynamic PORT env var — use shell form to expand it
+# Falls back to 8000 if PORT is not set (local dev compatibility)
+CMD ["sh", "-c", "exec php artisan serve --host=0.0.0.0 --port=${PORT:-8000}"]
 
 # ─── Stage 3: Queue Worker ──────────────────────────────────────────
 FROM app AS queue-worker

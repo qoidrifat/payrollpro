@@ -8,7 +8,7 @@
         <link rel="icon" href="/iconn.ico" type="image/x-icon" />
 
         <!-- Scripts -->
-        @routes
+        @routes(nonce: \Illuminate\Support\Facades\Vite::cspNonce())
         @vite(['resources/js/app.js', "resources/js/Pages/{$page['component']}.vue"])
         @inertiaHead
     </head>

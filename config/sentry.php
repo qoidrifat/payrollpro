@@ -89,8 +89,8 @@ return [
     */
 
     'breadcrumbs' => [
-        'sql_queries' => env('SENTRY_BREADCRUMBS_SQL_QUERIES', true),
-        'sql_bindings' => env('SENTRY_BREADCRUMBS_SQL_BINDINGS', true),
+        'sql_queries' => env('SENTRY_BREADCRUMBS_SQL_QUERIES', false),
+        'sql_bindings' => env('SENTRY_BREADCRUMBS_SQL_BINDINGS', false),
         'redis' => env('SENTRY_BREADCRUMBS_REDIS', true),
         'queue_info' => env('SENTRY_BREADCRUMBS_QUEUE_INFO', true),
         'logs' => env('SENTRY_BREADCRUMBS_LOGS', true),
@@ -107,6 +107,6 @@ return [
     |
     */
 
-    'send_default_pii' => env('SENTRY_SEND_DEFAULT_PII', true),
+    'send_default_pii' => env('SENTRY_SEND_DEFAULT_PII', false),
 
 ];

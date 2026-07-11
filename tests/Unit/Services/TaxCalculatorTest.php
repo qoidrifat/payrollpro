@@ -49,10 +49,9 @@ class TaxCalculatorTest extends TestCase
 
     public function test_ptkp_tk5(): void
     {
-        // 5 dependents = K/3 base (67,500,000) + 2 extra * 4,500,000 = 76,500,000
+        // Dependents capped at 3 (PMK 101/2016) — 5 dependents = TK/3, no extra.
         $ptkp = $this->calculator->getPtkp(MaritalStatus::Single, 5);
-        $expected = 67500000 + (2 * 4500000);
-        $this->assertEquals($expected, $ptkp);
+        $this->assertEquals(67500000, $ptkp);
     }
 
     public function test_ptkp_category_tk0(): void

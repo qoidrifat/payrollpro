@@ -11,9 +11,16 @@ return new class extends Migration
         $tables = ['users', 'employees', 'payrolls', 'attendances'];
 
         foreach ($tables as $table) {
-            if (!Schema::hasColumn($table, 'company_id')) {
+            if (! Schema::hasColumn($table, 'company_id')) {
                 Schema::table($table, function (Blueprint $table) {
-                    $table->foreignId('company_id')->nullable()->after('id')->constrained()->nullOnDelete();
+                    // restrictOnDelete: menghapus perusahaan yang masih memiliki
+                    // data (user/karyawan/penggajian/absensi) ditolak, sehingga
+                    // baris tidak pernah menjadi orphan (company_id = NULL) dan
+                    // lepas dari isolasi tenant. nullable() tetap dipertahankan
+                    // karena kolom ditambahkan ke tabel yang sudah terisi
+                    // (NOT NULL akan gagal sebelum backfill) dan user global
+                    // boleh tidak terikat perusahaan.
+                    $table->foreignId('company_id')->nullable()->constrained()->restrictOnDelete();
                 });
             }
         }

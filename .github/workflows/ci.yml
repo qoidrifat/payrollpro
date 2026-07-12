@@ -225,40 +225,19 @@ jobs:
   # Deploy (main branch only)
   ###########################################################
   deploy:
-    name: Deploy to Production
+    name: Deploy to Zeabur
     runs-on: ubuntu-latest
     timeout-minutes: 10
     needs: [test, frontend, security]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
 
     steps:
-      - name: 🚀 Trigger Koyeb Redeploy
-        env:
-          KOYEB_API_TOKEN: ${{ secrets.KOYEB_API_TOKEN }}
-          KOYEB_SERVICE_ID: ${{ secrets.KOYEB_SERVICE_ID }}
+      - name: ✅ Verify CI passed
         run: |
-          if [ -z "$KOYEB_API_TOKEN" ] || [ -z "$KOYEB_SERVICE_ID" ]; then
-            echo "⚠️  KOYEB_API_TOKEN or KOYEB_SERVICE_ID not set!"
-            echo "   Set them in GitHub: Settings → Secrets and variables → Actions"
-            echo ""
-            echo "   📋 How to get them:"
-            echo "   1. Koyeb Dashboard → Settings → API → Create API Token"
-            echo "   2. Koyeb Dashboard → Click your service → URL has the Service ID"
-            echo ""
-            echo "   ⏩ Auto-deploy via Koyeb GitHub App still runs on push."
-            exit 0
-          fi
-          echo "🚀 Triggering redeploy on Koyeb..."
-          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
-            -X POST "https://app.koyeb.com/v1/services/${KOYEB_SERVICE_ID}/redeploy" \
-            -H "Authorization: Bearer ${KOYEB_API_TOKEN}" \
-            -H "Content-Type: application/json")
-          if [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "202" ]; then
-            echo "✅ Redeploy triggered successfully! (HTTP $HTTP_CODE)"
-          else
-            echo "⚠️  Could not trigger redeploy (HTTP $HTTP_CODE)"
-            echo "   Auto-deploy via GitHub App still handles it."
-          fi
+          echo "🎉 Semua CI checks lulus!"
+          echo ""
+          echo "📦 Zeabur akan auto-deploy pada push ke main"
+          echo "   via koneksi GitHub di dashboard Zeabur."
 
       - name: 📊 Deployment Summary
         run: |
@@ -268,19 +247,20 @@ jobs:
           echo "  • Tests passed         : ✅"
           echo "  • Frontend build       : ✅"
           echo "  • Security audit       : ✅"
-          echo "  • Redeploy triggered   : ✅"
+          echo "  • Auto-deploy Zeabur   : ✅"
           echo "  "
-          echo "  📍 Koyeb Dashboard : https://app.koyeb.com"
+          echo "  📍 Zeabur Dashboard : https://zeabur.com"
+          echo "  📍 App URL          : https://project-kp.zeabur.app"
           echo "═══════════════════════════════════"
           echo ""
-          echo "📝 Set environment variables in Koyeb Dashboard:"
-          echo "   Settings → Environment Variables"
+          echo "📝 Set environment variables di Zeabur Dashboard:"
+          echo "   Project → Service → Variables tab"
           echo ""
           echo "   Required:"
-          echo "   • APP_KEY         (generate via: php artisan key:generate --show)"
+          echo "   • APP_KEY         = (generate: php artisan key:generate --show)"
           echo "   • APP_ENV         = production"
           echo "   • APP_DEBUG       = false"
-          echo "   • APP_URL         = https://project-kp.koyeb.app"
+          echo "   • APP_URL         = https://project-kp.zeabur.app"
           echo "   • LOG_LEVEL       = warning"
           echo "   • SESSION_DRIVER  = array"
           echo "   • CACHE_STORE     = array"

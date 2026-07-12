@@ -1,6 +1,6 @@
 -- ================================================================
 -- migrate.sql — MySQL-compatible schema for Project KP
--- Generated: 2026-07-12 07:55:41
+-- Generated: 2026-07-12 07:57:04
 -- Target: InfinityFree MySQL (phpMyAdmin)
 -- ================================================================
 
@@ -26,8 +26,7 @@ CREATE TABLE `activity_logs` (
   `user_agent` VARCHAR(255) NULL,
   `created_at` DATETIME NULL,
   `updated_at` DATETIME NULL,
-  PRIMARY KEY (`id`),
-  CONSTRAINT `fk_activity_logs_user_id` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE NO ACTION
+  PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
@@ -47,8 +46,7 @@ CREATE TABLE `approvals` (
   `rejected_at` DATETIME NULL,
   `created_at` DATETIME NULL,
   `updated_at` DATETIME NULL,
-  PRIMARY KEY (`id`),
-  CONSTRAINT `fk_approvals_approver_id` FOREIGN KEY (`approver_id`) REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE NO ACTION
+  PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
@@ -70,9 +68,7 @@ CREATE TABLE `attendance_selfies` (
   `captured_at` DATETIME NULL,
   `created_at` DATETIME NULL,
   `updated_at` DATETIME NULL,
-  PRIMARY KEY (`id`),
-  CONSTRAINT `fk_attendance_selfies_employee_id` FOREIGN KEY (`employee_id`) REFERENCES `employees` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION,
-  CONSTRAINT `fk_attendance_selfies_attendance_id` FOREIGN KEY (`attendance_id`) REFERENCES `attendances` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION
+  PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
@@ -99,10 +95,7 @@ CREATE TABLE `attendances` (
   `approved_by` INT NULL,
   `approved_at` DATETIME NULL,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `attendances_employee_id_date_unique` (`employee_id`, `date`),
-  CONSTRAINT `fk_attendances_approved_by` FOREIGN KEY (`approved_by`) REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE NO ACTION,
-  CONSTRAINT `fk_attendances_employee_id` FOREIGN KEY (`employee_id`) REFERENCES `employees` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION,
-  CONSTRAINT `fk_attendances_company_id` FOREIGN KEY (`company_id`) REFERENCES `companies` (`id`) ON DELETE RESTRICT ON UPDATE NO ACTION
+  UNIQUE KEY `attendances_employee_id_date_unique` (`employee_id`, `date`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
@@ -217,9 +210,7 @@ CREATE TABLE `employees` (
   `dependents_count` INT NOT NULL DEFAULT '0',
   `nik_hash` VARCHAR(255) NULL,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `employees_nik_hash_unique` (`nik_hash`),
-  CONSTRAINT `fk_employees_user_id` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE NO ACTION,
-  CONSTRAINT `fk_employees_company_id` FOREIGN KEY (`company_id`) REFERENCES `companies` (`id`) ON DELETE RESTRICT ON UPDATE NO ACTION
+  UNIQUE KEY `employees_nik_hash_unique` (`nik_hash`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
@@ -254,8 +245,7 @@ CREATE TABLE `holidays` (
   `description` TEXT NULL,
   `created_at` DATETIME NULL,
   `updated_at` DATETIME NULL,
-  PRIMARY KEY (`id`),
-  CONSTRAINT `fk_holidays_company_id` FOREIGN KEY (`company_id`) REFERENCES `companies` (`id`) ON DELETE SET NULL ON UPDATE NO ACTION
+  PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
@@ -269,9 +259,7 @@ CREATE TABLE `incident_service` (
   `system_service_id` INT NOT NULL,
   `created_at` DATETIME NULL,
   `updated_at` DATETIME NULL,
-  PRIMARY KEY (`incident_id`, `system_service_id`),
-  CONSTRAINT `fk_incident_service_system_service_id` FOREIGN KEY (`system_service_id`) REFERENCES `system_services` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION,
-  CONSTRAINT `fk_incident_service_incident_id` FOREIGN KEY (`incident_id`) REFERENCES `incidents` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION
+  PRIMARY KEY (`incident_id`, `system_service_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
@@ -287,9 +275,7 @@ CREATE TABLE `incident_updates` (
   `created_by` INT NULL,
   `created_at` DATETIME NULL,
   `updated_at` DATETIME NULL,
-  PRIMARY KEY (`id`),
-  CONSTRAINT `fk_incident_updates_created_by` FOREIGN KEY (`created_by`) REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE NO ACTION,
-  CONSTRAINT `fk_incident_updates_incident_id` FOREIGN KEY (`incident_id`) REFERENCES `incidents` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION
+  PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
@@ -311,8 +297,7 @@ CREATE TABLE `incidents` (
   `created_at` DATETIME NULL,
   `updated_at` DATETIME NULL,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `incidents_slug_unique` (`slug`),
-  CONSTRAINT `fk_incidents_created_by` FOREIGN KEY (`created_by`) REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE NO ACTION
+  UNIQUE KEY `incidents_slug_unique` (`slug`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
@@ -371,10 +356,7 @@ CREATE TABLE `leave_requests` (
   `rejection_reason` TEXT NULL,
   `created_at` DATETIME NULL,
   `updated_at` DATETIME NULL,
-  PRIMARY KEY (`id`),
-  CONSTRAINT `fk_leave_requests_approved_by` FOREIGN KEY (`approved_by`) REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE NO ACTION,
-  CONSTRAINT `fk_leave_requests_employee_id` FOREIGN KEY (`employee_id`) REFERENCES `employees` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION,
-  CONSTRAINT `fk_leave_requests_company_id` FOREIGN KEY (`company_id`) REFERENCES `companies` (`id`) ON DELETE SET NULL ON UPDATE NO ACTION
+  PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
@@ -395,8 +377,7 @@ CREATE TABLE `maintenance_schedules` (
   `created_by` INT NULL,
   `created_at` DATETIME NULL,
   `updated_at` DATETIME NULL,
-  PRIMARY KEY (`id`),
-  CONSTRAINT `fk_maintenance_schedules_created_by` FOREIGN KEY (`created_by`) REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE NO ACTION
+  PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
@@ -422,11 +403,7 @@ CREATE TABLE `manual_attendance_requests` (
   `metadata` TEXT NULL,
   `created_at` DATETIME NULL,
   `updated_at` DATETIME NULL,
-  PRIMARY KEY (`id`),
-  CONSTRAINT `fk_manual_attendance_requests_reviewed_by` FOREIGN KEY (`reviewed_by`) REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE NO ACTION,
-  CONSTRAINT `fk_manual_attendance_requests_attendance_id` FOREIGN KEY (`attendance_id`) REFERENCES `attendances` (`id`) ON DELETE SET NULL ON UPDATE NO ACTION,
-  CONSTRAINT `fk_manual_attendance_requests_employee_id` FOREIGN KEY (`employee_id`) REFERENCES `employees` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION,
-  CONSTRAINT `fk_manual_attendance_requests_company_id` FOREIGN KEY (`company_id`) REFERENCES `companies` (`id`) ON DELETE SET NULL ON UPDATE NO ACTION
+  PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
@@ -451,8 +428,7 @@ CREATE TABLE `model_has_permissions` (
   `permission_id` INT NOT NULL,
   `model_type` VARCHAR(255) NOT NULL,
   `model_id` INT NOT NULL,
-  PRIMARY KEY (`permission_id`, `model_type`, `model_id`),
-  CONSTRAINT `fk_model_has_permissions_permission_id` FOREIGN KEY (`permission_id`) REFERENCES `permissions` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION
+  PRIMARY KEY (`permission_id`, `model_type`, `model_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
@@ -465,8 +441,7 @@ CREATE TABLE `model_has_roles` (
   `role_id` INT NOT NULL,
   `model_type` VARCHAR(255) NOT NULL,
   `model_id` INT NOT NULL,
-  PRIMARY KEY (`role_id`, `model_type`, `model_id`),
-  CONSTRAINT `fk_model_has_roles_role_id` FOREIGN KEY (`role_id`) REFERENCES `roles` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION
+  PRIMARY KEY (`role_id`, `model_type`, `model_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
@@ -504,8 +479,7 @@ CREATE TABLE `office_locations` (
   `is_primary` TINYINT NOT NULL DEFAULT '0',
   `created_at` DATETIME NULL,
   `updated_at` DATETIME NULL,
-  PRIMARY KEY (`id`),
-  CONSTRAINT `fk_office_locations_company_id` FOREIGN KEY (`company_id`) REFERENCES `companies` (`id`) ON DELETE SET NULL ON UPDATE NO ACTION
+  PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
@@ -530,10 +504,7 @@ CREATE TABLE `overtime_requests` (
   `reason` TEXT NULL,
   `created_at` DATETIME NULL,
   `updated_at` DATETIME NULL,
-  PRIMARY KEY (`id`),
-  CONSTRAINT `fk_overtime_requests_approved_by` FOREIGN KEY (`approved_by`) REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE NO ACTION,
-  CONSTRAINT `fk_overtime_requests_employee_id` FOREIGN KEY (`employee_id`) REFERENCES `employees` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION,
-  CONSTRAINT `fk_overtime_requests_company_id` FOREIGN KEY (`company_id`) REFERENCES `companies` (`id`) ON DELETE SET NULL ON UPDATE NO ACTION
+  PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
@@ -556,8 +527,7 @@ CREATE TABLE `overtime_rules` (
   `description` TEXT NULL,
   `created_at` DATETIME NULL,
   `updated_at` DATETIME NULL,
-  PRIMARY KEY (`id`),
-  CONSTRAINT `fk_overtime_rules_company_id` FOREIGN KEY (`company_id`) REFERENCES `companies` (`id`) ON DELETE SET NULL ON UPDATE NO ACTION
+  PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
@@ -602,9 +572,7 @@ CREATE TABLE `payroll_items` (
   `created_at` DATETIME NULL,
   `updated_at` DATETIME NULL,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `payroll_items_payroll_id_employee_id_unique` (`payroll_id`, `employee_id`),
-  CONSTRAINT `fk_payroll_items_employee_id` FOREIGN KEY (`employee_id`) REFERENCES `employees` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION,
-  CONSTRAINT `fk_payroll_items_payroll_id` FOREIGN KEY (`payroll_id`) REFERENCES `payrolls` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION
+  UNIQUE KEY `payroll_items_payroll_id_employee_id_unique` (`payroll_id`, `employee_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
@@ -634,10 +602,7 @@ CREATE TABLE `payrolls` (
   `progress_percentage` INT NOT NULL DEFAULT '0',
   `current_batch` INT NOT NULL DEFAULT '0',
   `total_batches` INT NOT NULL DEFAULT '0',
-  PRIMARY KEY (`id`),
-  CONSTRAINT `fk_payrolls_company_id` FOREIGN KEY (`company_id`) REFERENCES `companies` (`id`) ON DELETE RESTRICT ON UPDATE NO ACTION,
-  CONSTRAINT `fk_payrolls_processed_by` FOREIGN KEY (`processed_by`) REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE NO ACTION,
-  CONSTRAINT `fk_payrolls_approved_by` FOREIGN KEY (`approved_by`) REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE NO ACTION
+  PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
@@ -655,8 +620,7 @@ CREATE TABLE `payslips` (
   `created_at` DATETIME NULL,
   `updated_at` DATETIME NULL,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `payslips_payslip_number_unique` (`payslip_number`),
-  CONSTRAINT `fk_payslips_payroll_item_id` FOREIGN KEY (`payroll_item_id`) REFERENCES `payroll_items` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION
+  UNIQUE KEY `payslips_payslip_number_unique` (`payslip_number`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
@@ -794,8 +758,7 @@ CREATE TABLE `realtime_notifications` (
   `occurred_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `created_at` DATETIME NULL,
   `updated_at` DATETIME NULL,
-  PRIMARY KEY (`id`),
-  CONSTRAINT `fk_realtime_notifications_company_id` FOREIGN KEY (`company_id`) REFERENCES `companies` (`id`) ON DELETE SET NULL ON UPDATE NO ACTION
+  PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
@@ -807,9 +770,7 @@ DROP TABLE IF EXISTS `role_has_permissions`;
 CREATE TABLE `role_has_permissions` (
   `permission_id` INT NOT NULL,
   `role_id` INT NOT NULL,
-  PRIMARY KEY (`permission_id`, `role_id`),
-  CONSTRAINT `fk_role_has_permissions_role_id` FOREIGN KEY (`role_id`) REFERENCES `roles` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION,
-  CONSTRAINT `fk_role_has_permissions_permission_id` FOREIGN KEY (`permission_id`) REFERENCES `permissions` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION
+  PRIMARY KEY (`permission_id`, `role_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
@@ -845,8 +806,7 @@ CREATE TABLE `salary_components` (
   `description` TEXT NULL,
   `created_at` DATETIME NULL,
   `updated_at` DATETIME NULL,
-  PRIMARY KEY (`id`),
-  CONSTRAINT `fk_salary_components_employee_id` FOREIGN KEY (`employee_id`) REFERENCES `employees` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION
+  PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
@@ -862,8 +822,7 @@ CREATE TABLE `service_metrics` (
   `recorded_at` DATETIME NOT NULL,
   `created_at` DATETIME NULL,
   `updated_at` DATETIME NULL,
-  PRIMARY KEY (`id`),
-  CONSTRAINT `fk_service_metrics_system_service_id` FOREIGN KEY (`system_service_id`) REFERENCES `system_services` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION
+  PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
@@ -917,10 +876,7 @@ CREATE TABLE `shift_assignments` (
   `created_at` DATETIME NULL,
   `updated_at` DATETIME NULL,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `shift_assignments_employee_id_date_unique` (`employee_id`, `date`),
-  CONSTRAINT `fk_shift_assignments_shift_id` FOREIGN KEY (`shift_id`) REFERENCES `shifts` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION,
-  CONSTRAINT `fk_shift_assignments_employee_id` FOREIGN KEY (`employee_id`) REFERENCES `employees` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION,
-  CONSTRAINT `fk_shift_assignments_company_id` FOREIGN KEY (`company_id`) REFERENCES `companies` (`id`) ON DELETE SET NULL ON UPDATE NO ACTION
+  UNIQUE KEY `shift_assignments_employee_id_date_unique` (`employee_id`, `date`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
@@ -944,8 +900,7 @@ CREATE TABLE `shifts` (
   `description` TEXT NULL,
   `created_at` DATETIME NULL,
   `updated_at` DATETIME NULL,
-  PRIMARY KEY (`id`),
-  CONSTRAINT `fk_shifts_company_id` FOREIGN KEY (`company_id`) REFERENCES `companies` (`id`) ON DELETE SET NULL ON UPDATE NO ACTION
+  PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
@@ -985,8 +940,7 @@ CREATE TABLE `uptime_logs` (
   `response_time_ms` INT NULL,
   `created_at` DATETIME NULL,
   `updated_at` DATETIME NULL,
-  PRIMARY KEY (`id`),
-  CONSTRAINT `fk_uptime_logs_system_service_id` FOREIGN KEY (`system_service_id`) REFERENCES `system_services` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION
+  PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
@@ -1005,8 +959,7 @@ CREATE TABLE `user_notifications` (
   `channel` VARCHAR(255) NULL,
   `created_at` DATETIME NULL,
   `updated_at` DATETIME NULL,
-  PRIMARY KEY (`id`),
-  CONSTRAINT `fk_user_notifications_user_id` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION
+  PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- --------------------------------------------------------
@@ -1030,10 +983,62 @@ CREATE TABLE `users` (
   `suspended_at` DATETIME NULL,
   `last_login_at` DATETIME NULL,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `users_email_unique` (`email`),
-  CONSTRAINT `fk_users_approved_by` FOREIGN KEY (`approved_by`) REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE NO ACTION,
-  CONSTRAINT `fk_users_company_id` FOREIGN KEY (`company_id`) REFERENCES `companies` (`id`) ON DELETE RESTRICT ON UPDATE NO ACTION
+  UNIQUE KEY `users_email_unique` (`email`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- --------------------------------------------------------
+-- Foreign Key Constraints (added after all tables exist)
+-- --------------------------------------------------------
+
+ALTER TABLE `activity_logs` ADD CONSTRAINT `fk_activity_logs_user_id` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE NO ACTION;
+ALTER TABLE `approvals` ADD CONSTRAINT `fk_approvals_approver_id` FOREIGN KEY (`approver_id`) REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE NO ACTION;
+ALTER TABLE `attendance_selfies` ADD CONSTRAINT `fk_attendance_selfies_employee_id` FOREIGN KEY (`employee_id`) REFERENCES `employees` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION;
+ALTER TABLE `attendance_selfies` ADD CONSTRAINT `fk_attendance_selfies_attendance_id` FOREIGN KEY (`attendance_id`) REFERENCES `attendances` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION;
+ALTER TABLE `attendances` ADD CONSTRAINT `fk_attendances_approved_by` FOREIGN KEY (`approved_by`) REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE NO ACTION;
+ALTER TABLE `attendances` ADD CONSTRAINT `fk_attendances_employee_id` FOREIGN KEY (`employee_id`) REFERENCES `employees` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION;
+ALTER TABLE `attendances` ADD CONSTRAINT `fk_attendances_company_id` FOREIGN KEY (`company_id`) REFERENCES `companies` (`id`) ON DELETE RESTRICT ON UPDATE NO ACTION;
+ALTER TABLE `employees` ADD CONSTRAINT `fk_employees_user_id` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE NO ACTION;
+ALTER TABLE `employees` ADD CONSTRAINT `fk_employees_company_id` FOREIGN KEY (`company_id`) REFERENCES `companies` (`id`) ON DELETE RESTRICT ON UPDATE NO ACTION;
+ALTER TABLE `holidays` ADD CONSTRAINT `fk_holidays_company_id` FOREIGN KEY (`company_id`) REFERENCES `companies` (`id`) ON DELETE SET NULL ON UPDATE NO ACTION;
+ALTER TABLE `incident_service` ADD CONSTRAINT `fk_incident_service_system_service_id` FOREIGN KEY (`system_service_id`) REFERENCES `system_services` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION;
+ALTER TABLE `incident_service` ADD CONSTRAINT `fk_incident_service_incident_id` FOREIGN KEY (`incident_id`) REFERENCES `incidents` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION;
+ALTER TABLE `incident_updates` ADD CONSTRAINT `fk_incident_updates_created_by` FOREIGN KEY (`created_by`) REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE NO ACTION;
+ALTER TABLE `incident_updates` ADD CONSTRAINT `fk_incident_updates_incident_id` FOREIGN KEY (`incident_id`) REFERENCES `incidents` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION;
+ALTER TABLE `incidents` ADD CONSTRAINT `fk_incidents_created_by` FOREIGN KEY (`created_by`) REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE NO ACTION;
+ALTER TABLE `leave_requests` ADD CONSTRAINT `fk_leave_requests_approved_by` FOREIGN KEY (`approved_by`) REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE NO ACTION;
+ALTER TABLE `leave_requests` ADD CONSTRAINT `fk_leave_requests_employee_id` FOREIGN KEY (`employee_id`) REFERENCES `employees` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION;
+ALTER TABLE `leave_requests` ADD CONSTRAINT `fk_leave_requests_company_id` FOREIGN KEY (`company_id`) REFERENCES `companies` (`id`) ON DELETE SET NULL ON UPDATE NO ACTION;
+ALTER TABLE `maintenance_schedules` ADD CONSTRAINT `fk_maintenance_schedules_created_by` FOREIGN KEY (`created_by`) REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE NO ACTION;
+ALTER TABLE `manual_attendance_requests` ADD CONSTRAINT `fk_manual_attendance_requests_reviewed_by` FOREIGN KEY (`reviewed_by`) REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE NO ACTION;
+ALTER TABLE `manual_attendance_requests` ADD CONSTRAINT `fk_manual_attendance_requests_attendance_id` FOREIGN KEY (`attendance_id`) REFERENCES `attendances` (`id`) ON DELETE SET NULL ON UPDATE NO ACTION;
+ALTER TABLE `manual_attendance_requests` ADD CONSTRAINT `fk_manual_attendance_requests_employee_id` FOREIGN KEY (`employee_id`) REFERENCES `employees` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION;
+ALTER TABLE `manual_attendance_requests` ADD CONSTRAINT `fk_manual_attendance_requests_company_id` FOREIGN KEY (`company_id`) REFERENCES `companies` (`id`) ON DELETE SET NULL ON UPDATE NO ACTION;
+ALTER TABLE `model_has_permissions` ADD CONSTRAINT `fk_model_has_permissions_permission_id` FOREIGN KEY (`permission_id`) REFERENCES `permissions` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION;
+ALTER TABLE `model_has_roles` ADD CONSTRAINT `fk_model_has_roles_role_id` FOREIGN KEY (`role_id`) REFERENCES `roles` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION;
+ALTER TABLE `office_locations` ADD CONSTRAINT `fk_office_locations_company_id` FOREIGN KEY (`company_id`) REFERENCES `companies` (`id`) ON DELETE SET NULL ON UPDATE NO ACTION;
+ALTER TABLE `overtime_requests` ADD CONSTRAINT `fk_overtime_requests_approved_by` FOREIGN KEY (`approved_by`) REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE NO ACTION;
+ALTER TABLE `overtime_requests` ADD CONSTRAINT `fk_overtime_requests_employee_id` FOREIGN KEY (`employee_id`) REFERENCES `employees` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION;
+ALTER TABLE `overtime_requests` ADD CONSTRAINT `fk_overtime_requests_company_id` FOREIGN KEY (`company_id`) REFERENCES `companies` (`id`) ON DELETE SET NULL ON UPDATE NO ACTION;
+ALTER TABLE `overtime_rules` ADD CONSTRAINT `fk_overtime_rules_company_id` FOREIGN KEY (`company_id`) REFERENCES `companies` (`id`) ON DELETE SET NULL ON UPDATE NO ACTION;
+ALTER TABLE `payroll_items` ADD CONSTRAINT `fk_payroll_items_employee_id` FOREIGN KEY (`employee_id`) REFERENCES `employees` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION;
+ALTER TABLE `payroll_items` ADD CONSTRAINT `fk_payroll_items_payroll_id` FOREIGN KEY (`payroll_id`) REFERENCES `payrolls` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION;
+ALTER TABLE `payrolls` ADD CONSTRAINT `fk_payrolls_company_id` FOREIGN KEY (`company_id`) REFERENCES `companies` (`id`) ON DELETE RESTRICT ON UPDATE NO ACTION;
+ALTER TABLE `payrolls` ADD CONSTRAINT `fk_payrolls_processed_by` FOREIGN KEY (`processed_by`) REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE NO ACTION;
+ALTER TABLE `payrolls` ADD CONSTRAINT `fk_payrolls_approved_by` FOREIGN KEY (`approved_by`) REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE NO ACTION;
+ALTER TABLE `payslips` ADD CONSTRAINT `fk_payslips_payroll_item_id` FOREIGN KEY (`payroll_item_id`) REFERENCES `payroll_items` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION;
+ALTER TABLE `realtime_notifications` ADD CONSTRAINT `fk_realtime_notifications_company_id` FOREIGN KEY (`company_id`) REFERENCES `companies` (`id`) ON DELETE SET NULL ON UPDATE NO ACTION;
+ALTER TABLE `role_has_permissions` ADD CONSTRAINT `fk_role_has_permissions_role_id` FOREIGN KEY (`role_id`) REFERENCES `roles` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION;
+ALTER TABLE `role_has_permissions` ADD CONSTRAINT `fk_role_has_permissions_permission_id` FOREIGN KEY (`permission_id`) REFERENCES `permissions` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION;
+ALTER TABLE `salary_components` ADD CONSTRAINT `fk_salary_components_employee_id` FOREIGN KEY (`employee_id`) REFERENCES `employees` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION;
+ALTER TABLE `service_metrics` ADD CONSTRAINT `fk_service_metrics_system_service_id` FOREIGN KEY (`system_service_id`) REFERENCES `system_services` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION;
+ALTER TABLE `shift_assignments` ADD CONSTRAINT `fk_shift_assignments_shift_id` FOREIGN KEY (`shift_id`) REFERENCES `shifts` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION;
+ALTER TABLE `shift_assignments` ADD CONSTRAINT `fk_shift_assignments_employee_id` FOREIGN KEY (`employee_id`) REFERENCES `employees` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION;
+ALTER TABLE `shift_assignments` ADD CONSTRAINT `fk_shift_assignments_company_id` FOREIGN KEY (`company_id`) REFERENCES `companies` (`id`) ON DELETE SET NULL ON UPDATE NO ACTION;
+ALTER TABLE `shifts` ADD CONSTRAINT `fk_shifts_company_id` FOREIGN KEY (`company_id`) REFERENCES `companies` (`id`) ON DELETE SET NULL ON UPDATE NO ACTION;
+ALTER TABLE `uptime_logs` ADD CONSTRAINT `fk_uptime_logs_system_service_id` FOREIGN KEY (`system_service_id`) REFERENCES `system_services` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION;
+ALTER TABLE `user_notifications` ADD CONSTRAINT `fk_user_notifications_user_id` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION;
+ALTER TABLE `users` ADD CONSTRAINT `fk_users_approved_by` FOREIGN KEY (`approved_by`) REFERENCES `users` (`id`) ON DELETE SET NULL ON UPDATE NO ACTION;
+ALTER TABLE `users` ADD CONSTRAINT `fk_users_company_id` FOREIGN KEY (`company_id`) REFERENCES `companies` (`id`) ON DELETE RESTRICT ON UPDATE NO ACTION;
 
 -- --------------------------------------------------------
 -- Indexes for tables

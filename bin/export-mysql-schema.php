@@ -373,19 +373,38 @@ foreach ($tables as $table) {
         }
     }
 
-    // Foreign keys
+    echo implode(",\n", $lines);
+    echo "\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;\n\n";
+}
+
+// ── Output FOREIGN KEY constraints (AFTER all tables exist) ─────────
+// IMPORTANT: Tables must exist before adding FK constraints. MySQL
+// requires referenced tables to be created first, but alphabetical
+// order doesn't guarantee this. Solution: create all tables without
+// FKs, then add all FKs via ALTER TABLE.
+echo "-- --------------------------------------------------------\n";
+echo "-- Foreign Key Constraints (added after all tables exist)\n";
+echo "-- --------------------------------------------------------\n\n";
+
+foreach ($tables as $table) {
+    $fks = $fkMap[$table];
     foreach ($fks as $fk) {
         $from = $fk['from'];
         $toTable = $fk['table'];
         $toCol = $fk['to'];
         $onUpdate = $fk['on_update'] ?: 'NO ACTION';
         $onDelete = $fk['on_delete'] ?: 'NO ACTION';
-        $lines[] = "  CONSTRAINT `fk_{$table}_{$from}` FOREIGN KEY (`{$from}`) REFERENCES `{$toTable}` (`{$toCol}`) ON DELETE {$onDelete} ON UPDATE {$onUpdate}";
+        $constraintName = "fk_{$table}_{$from}";
+        // Truncate constraint name to 64 chars (MySQL limit)
+        if (strlen($constraintName) > 64) {
+            $constraintName = substr($constraintName, 0, 64);
+        }
+        echo "ALTER TABLE `{$table}` ADD CONSTRAINT `{$constraintName}`";
+        echo " FOREIGN KEY (`{$from}`) REFERENCES `{$toTable}` (`{$toCol}`)";
+        echo " ON DELETE {$onDelete} ON UPDATE {$onUpdate};\n";
     }
-
-    echo implode(",\n", $lines);
-    echo "\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;\n\n";
 }
+echo "\n";
 
 // ── Output INDEXES (non-unique, non-PK) ──────────────────────────────
 echo "-- --------------------------------------------------------\n";

@@ -59,7 +59,7 @@ jobs:
     name: PHPUnit Tests
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    needs: lint
+    needs: [frontend, security]
 
     steps:
       - uses: actions/checkout@v4
@@ -82,17 +82,11 @@ jobs:
       - name: Install Composer dependencies
         run: composer install --no-progress --prefer-dist --no-interaction
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - name: Download frontend build artifact
+        uses: actions/download-artifact@v4
         with:
-          node-version: '20'
-          cache: 'npm'
-
-      - name: Install Node dependencies
-        run: npm ci
-
-      - name: Build frontend (needed for Vite manifest in Inertia tests)
-        run: npm run build
+          name: frontend-build
+          path: public/build/
 
       - name: Setup environment
         run: |
@@ -163,6 +157,13 @@ jobs:
 
       - name: Build
         run: npm run build
+
+      - name: Upload build artifact (for test job)
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-build
+          path: public/build/
+          retention-days: 1
 
   ###########################################################
   # Security Scan

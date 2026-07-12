@@ -331,7 +331,7 @@ foreach ($tables as $table) {
         if ($col['pk'] == 1 && $col['name'] === 'id' && (strpos($mysqlType, 'INT') !== false || strpos($mysqlType, 'BIGINT') !== false)) {
             $parts[0] = "  `{$col['name']}` {$mysqlType} NOT NULL AUTO_INCREMENT";
             $hasAutoIncrement = true;
-            // Don't add to pkColumns list for composite PK tables
+            $lines[] = implode(' ', $parts);
             continue;
         }
 

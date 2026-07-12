@@ -1,6 +1,6 @@
 -- ================================================================
 -- migrate.sql — MySQL-compatible schema for Project KP
--- Generated: 2026-07-12 07:57:04
+-- Generated: 2026-07-12 08:03:34
 -- Target: InfinityFree MySQL (phpMyAdmin)
 -- ================================================================
 
@@ -16,6 +16,7 @@ SET time_zone = '+07:00';
 DROP TABLE IF EXISTS `activity_logs`;
 
 CREATE TABLE `activity_logs` (
+  `id` INT NOT NULL AUTO_INCREMENT,
   `user_id` INT NULL,
   `action` VARCHAR(255) NOT NULL,
   `description` VARCHAR(255) NOT NULL,
@@ -36,6 +37,7 @@ CREATE TABLE `activity_logs` (
 DROP TABLE IF EXISTS `approvals`;
 
 CREATE TABLE `approvals` (
+  `id` INT NOT NULL AUTO_INCREMENT,
   `approvable_type` VARCHAR(255) NOT NULL,
   `approvable_id` INT NOT NULL,
   `level` VARCHAR(255) NOT NULL,
@@ -56,6 +58,7 @@ CREATE TABLE `approvals` (
 DROP TABLE IF EXISTS `attendance_selfies`;
 
 CREATE TABLE `attendance_selfies` (
+  `id` INT NOT NULL AUTO_INCREMENT,
   `attendance_id` INT NOT NULL,
   `employee_id` INT NOT NULL,
   `image_path` VARCHAR(255) NULL,
@@ -78,6 +81,7 @@ CREATE TABLE `attendance_selfies` (
 DROP TABLE IF EXISTS `attendances`;
 
 CREATE TABLE `attendances` (
+  `id` INT NOT NULL AUTO_INCREMENT,
   `employee_id` INT NOT NULL,
   `date` DATE NOT NULL,
   `clock_in` TIME NULL,
@@ -105,6 +109,7 @@ CREATE TABLE `attendances` (
 DROP TABLE IF EXISTS `bpjs_configs`;
 
 CREATE TABLE `bpjs_configs` (
+  `id` INT NOT NULL AUTO_INCREMENT,
   `name` VARCHAR(255) NOT NULL,
   `type` VARCHAR(255) NOT NULL,
   `payer` VARCHAR(255) NOT NULL,
@@ -151,6 +156,7 @@ CREATE TABLE `cache_locks` (
 DROP TABLE IF EXISTS `companies`;
 
 CREATE TABLE `companies` (
+  `id` INT NOT NULL AUTO_INCREMENT,
   `name` VARCHAR(255) NOT NULL,
   `slug` VARCHAR(255) NOT NULL,
   `domain` VARCHAR(255) NULL,
@@ -176,6 +182,7 @@ CREATE TABLE `companies` (
 DROP TABLE IF EXISTS `employees`;
 
 CREATE TABLE `employees` (
+  `id` INT NOT NULL AUTO_INCREMENT,
   `user_id` INT NULL,
   `nik` VARCHAR(255) NOT NULL,
   `npwp` VARCHAR(255) NULL,
@@ -220,6 +227,7 @@ CREATE TABLE `employees` (
 DROP TABLE IF EXISTS `failed_jobs`;
 
 CREATE TABLE `failed_jobs` (
+  `id` INT NOT NULL AUTO_INCREMENT,
   `uuid` VARCHAR(255) NOT NULL,
   `connection` TEXT NOT NULL,
   `queue` TEXT NOT NULL,
@@ -237,6 +245,7 @@ CREATE TABLE `failed_jobs` (
 DROP TABLE IF EXISTS `holidays`;
 
 CREATE TABLE `holidays` (
+  `id` INT NOT NULL AUTO_INCREMENT,
   `company_id` INT NULL,
   `name` VARCHAR(255) NOT NULL,
   `date` DATE NOT NULL,
@@ -269,6 +278,7 @@ CREATE TABLE `incident_service` (
 DROP TABLE IF EXISTS `incident_updates`;
 
 CREATE TABLE `incident_updates` (
+  `id` INT NOT NULL AUTO_INCREMENT,
   `incident_id` INT NOT NULL,
   `message` TEXT NOT NULL,
   `status` VARCHAR(255) NOT NULL,
@@ -285,6 +295,7 @@ CREATE TABLE `incident_updates` (
 DROP TABLE IF EXISTS `incidents`;
 
 CREATE TABLE `incidents` (
+  `id` INT NOT NULL AUTO_INCREMENT,
   `title` VARCHAR(255) NOT NULL,
   `slug` VARCHAR(255) NOT NULL,
   `severity` VARCHAR(255) NOT NULL DEFAULT 'minor',
@@ -327,6 +338,7 @@ CREATE TABLE `job_batches` (
 DROP TABLE IF EXISTS `jobs`;
 
 CREATE TABLE `jobs` (
+  `id` INT NOT NULL AUTO_INCREMENT,
   `queue` VARCHAR(255) NOT NULL,
   `payload` TEXT NOT NULL,
   `attempts` INT NOT NULL,
@@ -343,6 +355,7 @@ CREATE TABLE `jobs` (
 DROP TABLE IF EXISTS `leave_requests`;
 
 CREATE TABLE `leave_requests` (
+  `id` INT NOT NULL AUTO_INCREMENT,
   `company_id` INT NULL,
   `employee_id` INT NOT NULL,
   `leave_type` VARCHAR(255) NOT NULL,
@@ -366,6 +379,7 @@ CREATE TABLE `leave_requests` (
 DROP TABLE IF EXISTS `maintenance_schedules`;
 
 CREATE TABLE `maintenance_schedules` (
+  `id` INT NOT NULL AUTO_INCREMENT,
   `title` VARCHAR(255) NOT NULL,
   `description` TEXT NULL,
   `affected_services` TEXT NULL,
@@ -387,6 +401,7 @@ CREATE TABLE `maintenance_schedules` (
 DROP TABLE IF EXISTS `manual_attendance_requests`;
 
 CREATE TABLE `manual_attendance_requests` (
+  `id` INT NOT NULL AUTO_INCREMENT,
   `company_id` INT NULL,
   `employee_id` INT NOT NULL,
   `attendance_id` INT NULL,
@@ -413,6 +428,7 @@ CREATE TABLE `manual_attendance_requests` (
 DROP TABLE IF EXISTS `migrations`;
 
 CREATE TABLE `migrations` (
+  `id` INT NOT NULL AUTO_INCREMENT,
   `migration` VARCHAR(255) NOT NULL,
   `batch` INT NOT NULL,
   PRIMARY KEY (`id`)
@@ -469,6 +485,7 @@ CREATE TABLE `notifications` (
 DROP TABLE IF EXISTS `office_locations`;
 
 CREATE TABLE `office_locations` (
+  `id` INT NOT NULL AUTO_INCREMENT,
   `company_id` INT NULL,
   `name` VARCHAR(255) NOT NULL,
   `address` TEXT NULL,
@@ -489,6 +506,7 @@ CREATE TABLE `office_locations` (
 DROP TABLE IF EXISTS `overtime_requests`;
 
 CREATE TABLE `overtime_requests` (
+  `id` INT NOT NULL AUTO_INCREMENT,
   `company_id` INT NULL,
   `employee_id` INT NOT NULL,
   `overtime_type` VARCHAR(255) NOT NULL,
@@ -514,6 +532,7 @@ CREATE TABLE `overtime_requests` (
 DROP TABLE IF EXISTS `overtime_rules`;
 
 CREATE TABLE `overtime_rules` (
+  `id` INT NOT NULL AUTO_INCREMENT,
   `company_id` INT NULL,
   `overtime_type` VARCHAR(255) NOT NULL,
   `name` VARCHAR(255) NOT NULL,
@@ -550,6 +569,7 @@ CREATE TABLE `password_reset_tokens` (
 DROP TABLE IF EXISTS `payroll_items`;
 
 CREATE TABLE `payroll_items` (
+  `id` INT NOT NULL AUTO_INCREMENT,
   `payroll_id` INT NOT NULL,
   `employee_id` INT NOT NULL,
   `gross_salary` DECIMAL NOT NULL DEFAULT '0',
@@ -582,6 +602,7 @@ CREATE TABLE `payroll_items` (
 DROP TABLE IF EXISTS `payrolls`;
 
 CREATE TABLE `payrolls` (
+  `id` INT NOT NULL AUTO_INCREMENT,
   `name` VARCHAR(255) NOT NULL,
   `period_start` DATE NOT NULL,
   `period_end` DATE NOT NULL,
@@ -612,6 +633,7 @@ CREATE TABLE `payrolls` (
 DROP TABLE IF EXISTS `payslips`;
 
 CREATE TABLE `payslips` (
+  `id` INT NOT NULL AUTO_INCREMENT,
   `payroll_item_id` INT NOT NULL,
   `payslip_number` VARCHAR(255) NOT NULL,
   `pdf_path` VARCHAR(255) NULL,
@@ -630,6 +652,7 @@ CREATE TABLE `payslips` (
 DROP TABLE IF EXISTS `permissions`;
 
 CREATE TABLE `permissions` (
+  `id` INT NOT NULL AUTO_INCREMENT,
   `name` VARCHAR(255) NOT NULL,
   `guard_name` VARCHAR(255) NOT NULL,
   `created_at` DATETIME NULL,
@@ -645,6 +668,7 @@ CREATE TABLE `permissions` (
 DROP TABLE IF EXISTS `personal_access_tokens`;
 
 CREATE TABLE `personal_access_tokens` (
+  `id` INT NOT NULL AUTO_INCREMENT,
   `tokenable_type` VARCHAR(255) NOT NULL,
   `tokenable_id` INT NOT NULL,
   `name` VARCHAR(255) NOT NULL,
@@ -665,6 +689,7 @@ CREATE TABLE `personal_access_tokens` (
 DROP TABLE IF EXISTS `pph21_configs`;
 
 CREATE TABLE `pph21_configs` (
+  `id` INT NOT NULL AUTO_INCREMENT,
   `income_bracket_start` DECIMAL NOT NULL,
   `income_bracket_end` DECIMAL NULL,
   `rate_percentage` DECIMAL NOT NULL,
@@ -682,6 +707,7 @@ CREATE TABLE `pph21_configs` (
 DROP TABLE IF EXISTS `ptkp_configs`;
 
 CREATE TABLE `ptkp_configs` (
+  `id` INT NOT NULL AUTO_INCREMENT,
   `category` VARCHAR(255) NOT NULL,
   `description` TEXT NULL,
   `annual_amount` DECIMAL NOT NULL,
@@ -700,6 +726,7 @@ CREATE TABLE `ptkp_configs` (
 DROP TABLE IF EXISTS `pulse_aggregates`;
 
 CREATE TABLE `pulse_aggregates` (
+  `id` INT NOT NULL AUTO_INCREMENT,
   `bucket` INT NOT NULL,
   `period` INT NOT NULL,
   `type` VARCHAR(255) NOT NULL,
@@ -719,6 +746,7 @@ CREATE TABLE `pulse_aggregates` (
 DROP TABLE IF EXISTS `pulse_entries`;
 
 CREATE TABLE `pulse_entries` (
+  `id` INT NOT NULL AUTO_INCREMENT,
   `timestamp` INT NOT NULL,
   `type` VARCHAR(255) NOT NULL,
   `key` TEXT NOT NULL,
@@ -734,6 +762,7 @@ CREATE TABLE `pulse_entries` (
 DROP TABLE IF EXISTS `pulse_values`;
 
 CREATE TABLE `pulse_values` (
+  `id` INT NOT NULL AUTO_INCREMENT,
   `timestamp` INT NOT NULL,
   `type` VARCHAR(255) NOT NULL,
   `key` TEXT NOT NULL,
@@ -750,6 +779,7 @@ CREATE TABLE `pulse_values` (
 DROP TABLE IF EXISTS `realtime_notifications`;
 
 CREATE TABLE `realtime_notifications` (
+  `id` INT NOT NULL AUTO_INCREMENT,
   `company_id` INT NULL,
   `topic` VARCHAR(255) NOT NULL,
   `table_name` VARCHAR(255) NOT NULL,
@@ -780,6 +810,7 @@ CREATE TABLE `role_has_permissions` (
 DROP TABLE IF EXISTS `roles`;
 
 CREATE TABLE `roles` (
+  `id` INT NOT NULL AUTO_INCREMENT,
   `name` VARCHAR(255) NOT NULL,
   `guard_name` VARCHAR(255) NOT NULL,
   `created_at` DATETIME NULL,
@@ -795,6 +826,7 @@ CREATE TABLE `roles` (
 DROP TABLE IF EXISTS `salary_components`;
 
 CREATE TABLE `salary_components` (
+  `id` INT NOT NULL AUTO_INCREMENT,
   `employee_id` INT NOT NULL,
   `name` VARCHAR(255) NOT NULL,
   `type` ENUM('allowance','deduction','bonus','overtime') NOT NULL,
@@ -816,6 +848,7 @@ CREATE TABLE `salary_components` (
 DROP TABLE IF EXISTS `service_metrics`;
 
 CREATE TABLE `service_metrics` (
+  `id` INT NOT NULL AUTO_INCREMENT,
   `system_service_id` INT NOT NULL,
   `metric_type` VARCHAR(255) NOT NULL,
   `value` DECIMAL NOT NULL,
@@ -848,6 +881,7 @@ CREATE TABLE `sessions` (
 DROP TABLE IF EXISTS `settings`;
 
 CREATE TABLE `settings` (
+  `id` INT NOT NULL AUTO_INCREMENT,
   `key` VARCHAR(255) NOT NULL,
   `value` TEXT NULL,
   `group` VARCHAR(255) NOT NULL DEFAULT 'general',
@@ -865,6 +899,7 @@ CREATE TABLE `settings` (
 DROP TABLE IF EXISTS `shift_assignments`;
 
 CREATE TABLE `shift_assignments` (
+  `id` INT NOT NULL AUTO_INCREMENT,
   `company_id` INT NULL,
   `employee_id` INT NOT NULL,
   `shift_id` INT NOT NULL,
@@ -886,6 +921,7 @@ CREATE TABLE `shift_assignments` (
 DROP TABLE IF EXISTS `shifts`;
 
 CREATE TABLE `shifts` (
+  `id` INT NOT NULL AUTO_INCREMENT,
   `company_id` INT NULL,
   `name` VARCHAR(255) NOT NULL,
   `shift_type` VARCHAR(255) NOT NULL DEFAULT 'fixed',
@@ -910,6 +946,7 @@ CREATE TABLE `shifts` (
 DROP TABLE IF EXISTS `system_services`;
 
 CREATE TABLE `system_services` (
+  `id` INT NOT NULL AUTO_INCREMENT,
   `name` VARCHAR(255) NOT NULL,
   `slug` VARCHAR(255) NOT NULL,
   `description` TEXT NULL,
@@ -934,6 +971,7 @@ CREATE TABLE `system_services` (
 DROP TABLE IF EXISTS `uptime_logs`;
 
 CREATE TABLE `uptime_logs` (
+  `id` INT NOT NULL AUTO_INCREMENT,
   `system_service_id` INT NOT NULL,
   `status` VARCHAR(255) NOT NULL,
   `checked_at` DATETIME NOT NULL,
@@ -950,6 +988,7 @@ CREATE TABLE `uptime_logs` (
 DROP TABLE IF EXISTS `user_notifications`;
 
 CREATE TABLE `user_notifications` (
+  `id` INT NOT NULL AUTO_INCREMENT,
   `user_id` INT NOT NULL,
   `type` VARCHAR(255) NOT NULL,
   `title` VARCHAR(255) NOT NULL,
@@ -969,6 +1008,7 @@ CREATE TABLE `user_notifications` (
 DROP TABLE IF EXISTS `users`;
 
 CREATE TABLE `users` (
+  `id` INT NOT NULL AUTO_INCREMENT,
   `name` VARCHAR(255) NOT NULL,
   `email` VARCHAR(255) NOT NULL,
   `email_verified_at` DATETIME NULL,

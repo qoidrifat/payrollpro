@@ -232,12 +232,33 @@ jobs:
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
 
     steps:
-      - name: ✅ Verify CI passed
+      - name: 🚀 Trigger Koyeb Redeploy
+        env:
+          KOYEB_API_TOKEN: ${{ secrets.KOYEB_API_TOKEN }}
+          KOYEB_SERVICE_ID: ${{ secrets.KOYEB_SERVICE_ID }}
         run: |
-          echo "🎉 All CI checks passed!"
-          echo ""
-          echo "📦 Koyeb will automatically deploy on push to main"
-          echo "   via the Koyeb GitHub App integration."
+          if [ -z "$KOYEB_API_TOKEN" ] || [ -z "$KOYEB_SERVICE_ID" ]; then
+            echo "⚠️  KOYEB_API_TOKEN or KOYEB_SERVICE_ID not set!"
+            echo "   Set them in GitHub: Settings → Secrets and variables → Actions"
+            echo ""
+            echo "   📋 How to get them:"
+            echo "   1. Koyeb Dashboard → Settings → API → Create API Token"
+            echo "   2. Koyeb Dashboard → Click your service → URL has the Service ID"
+            echo ""
+            echo "   ⏩ Auto-deploy via Koyeb GitHub App still runs on push."
+            exit 0
+          fi
+          echo "🚀 Triggering redeploy on Koyeb..."
+          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" \
+            -X POST "https://app.koyeb.com/v1/services/${KOYEB_SERVICE_ID}/redeploy" \
+            -H "Authorization: Bearer ${KOYEB_API_TOKEN}" \
+            -H "Content-Type: application/json")
+          if [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "202" ]; then
+            echo "✅ Redeploy triggered successfully! (HTTP $HTTP_CODE)"
+          else
+            echo "⚠️  Could not trigger redeploy (HTTP $HTTP_CODE)"
+            echo "   Auto-deploy via GitHub App still handles it."
+          fi
 
       - name: 📊 Deployment Summary
         run: |
@@ -247,7 +268,7 @@ jobs:
           echo "  • Tests passed         : ✅"
           echo "  • Frontend build       : ✅"
           echo "  • Security audit       : ✅"
-          echo "  • Auto-deploy via Git  : ✅ (Koyeb)"
+          echo "  • Redeploy triggered   : ✅"
           echo "  "
           echo "  📍 Koyeb Dashboard : https://app.koyeb.com"
           echo "═══════════════════════════════════"

@@ -222,48 +222,45 @@ jobs:
           echo ""
 
   ###########################################################
-  # Deploy to Render (main branch only)
+  # Deploy (main branch only)
   ###########################################################
   deploy:
-    name: Deploy to Render
+    name: Deploy to Production
     runs-on: ubuntu-latest
     timeout-minutes: 10
     needs: [test, frontend, security]
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
 
     steps:
-      - name: Trigger Render Deploy Hook
-        env:
-          RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
+      - name: ✅ Verify CI passed
         run: |
-          if [ -z "$RENDER_DEPLOY_HOOK_URL" ]; then
-            echo "❌ RENDER_DEPLOY_HOOK_URL not set!"
-            echo "   Set it in GitHub: Settings → Secrets and variables → Actions"
-            echo "   Get the URL from Render Dashboard → Your Service → Settings → Deploy Hooks"
-            exit 1
-          fi
-          echo "🚀 Triggering Render deployment..."
-          HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" "$RENDER_DEPLOY_HOOK_URL")
-          if [ "$HTTP_CODE" = "200" ] || [ "$HTTP_CODE" = "201" ]; then
-            echo "✅ Deployment triggered successfully! (HTTP $HTTP_CODE)"
-          else
-            echo "❌ Failed to trigger deployment (HTTP $HTTP_CODE)"
-            exit 1
-          fi
+          echo "🎉 All CI checks passed!"
+          echo ""
+          echo "📦 Koyeb will automatically deploy on push to main"
+          echo "   via the Koyeb GitHub App integration."
 
-      - name: Deployment Summary
+      - name: 📊 Deployment Summary
         run: |
           echo ""
           echo "═══════════════════════════════════"
-          echo "  🚀 Render Deployment"
+          echo "  🚀 Deployment Summary"
           echo "  • Tests passed         : ✅"
           echo "  • Frontend build       : ✅"
           echo "  • Security audit       : ✅"
-          echo "  • Deploy triggered     : ✅"
+          echo "  • Auto-deploy via Git  : ✅ (Koyeb)"
           echo "  "
-          echo "  📍 Render Dashboard: https://dashboard.render.com"
-          echo "  📍 Service URL     : https://project-kp.onrender.com"
+          echo "  📍 Koyeb Dashboard : https://app.koyeb.com"
           echo "═══════════════════════════════════"
           echo ""
-          echo "Note: First-time deploy requires setting APP_KEY & DB_PASSWORD"
-          echo "in Render dashboard's Environment Variables section."
+          echo "📝 Set environment variables in Koyeb Dashboard:"
+          echo "   Settings → Environment Variables"
+          echo ""
+          echo "   Required:"
+          echo "   • APP_KEY         (generate via: php artisan key:generate --show)"
+          echo "   • APP_ENV         = production"
+          echo "   • APP_DEBUG       = false"
+          echo "   • APP_URL         = https://project-kp.koyeb.app"
+          echo "   • LOG_LEVEL       = warning"
+          echo "   • SESSION_DRIVER  = array"
+          echo "   • CACHE_STORE     = array"
+          echo "   • QUEUE_CONNECTION = sync"

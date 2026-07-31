@@ -2,7 +2,6 @@
 import { ref, computed } from 'vue'
 import { Link, router, usePage } from '@inertiajs/vue3'
 import AuthenticatedLayout from '@/Layouts/AuthenticatedLayout.vue'
-import PageHeader from '@/Components/PageHeader.vue'
 import StatCard from '@/Components/StatCard.vue'
 import DataTable from '@/Components/DataTable.vue'
 import Badge from '@/Components/Badge.vue'
@@ -12,6 +11,7 @@ import {
     UsersIcon,
     DocumentTextIcon,
     EyeIcon,
+    FunnelIcon,
 } from '@heroicons/vue/24/outline'
 
 const page = usePage()
@@ -22,30 +22,17 @@ const filterDates = ref({
 })
 
 const summary = computed(() => page.props.summary || {
-    total_payrolls: 0,
-    total_gross: 0,
-    total_net: 0,
-    total_employees: 0,
-    total_pph21: 0,
+    total_payrolls: 0, total_gross: 0, total_net: 0, total_employees: 0, total_pph21: 0,
 })
 
 const payrolls = computed(() => page.props.payrolls || { data: [] })
 const filters = computed(() => page.props.filters || {})
 
 const formatCurrency = (value) =>
-    new Intl.NumberFormat('id-ID', {
-        style: 'currency',
-        currency: 'IDR',
-        minimumFractionDigits: 0,
-    }).format(value)
+    new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(value)
 
 const statusVariant = (status) => {
-    const map = {
-        draft: 'default',
-        processed: 'info',
-        approved: 'primary',
-        paid: 'success',
-    }
+    const map = { draft: 'default', processed: 'info', approved: 'primary', paid: 'success' }
     return map[status] || 'default'
 }
 
@@ -60,106 +47,108 @@ const columns = [
 ]
 
 const rows = computed(() =>
-    payrolls.value.data.map((p) => ({
-        ...p,
-        total_net_formatted: formatCurrency(p.total_net ?? 0),
-    }))
+    payrolls.value.data.map((p) => ({ ...p, total_net_formatted: formatCurrency(p.total_net ?? 0) }))
 )
 
 const applyFilter = () => {
-    router.get(
-        route('reports.payroll'),
-        {
-            date_from: filterDates.value.date_from,
-            date_to: filterDates.value.date_to,
-        },
-        {
-            preserveState: true,
-            replace: true,
-        }
-    )
+    router.get(route('reports.payroll'), {
+        date_from: filterDates.value.date_from,
+        date_to: filterDates.value.date_to,
+    }, { preserveState: true, replace: true })
 }
 </script>
 
 <template>
     <AuthenticatedLayout>
-        <PageHeader title="Laporan Penggajian" description="Lihat dan analisis data penggajian lintas periode" />
+        <!-- ── Premium Header ─────────────────────────── -->
+        <div class="mb-8">
+            <div class="flex items-center gap-3.5 mb-2">
+                <div class="w-10 h-10 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/20 ring-2 ring-white/60 dark:ring-gray-900/60">
+                    <CurrencyDollarIcon class="w-5 h-5 text-white" />
+                </div>
+                <div>
+                    <h1 class="text-2xl md:text-3xl font-bold text-gray-900 dark:text-white tracking-tight">Laporan Penggajian</h1>
+                    <p class="text-sm text-gray-500 dark:text-gray-400 mt-0.5">Lihat dan analisis data penggajian lintas periode</p>
+                </div>
+            </div>
+        </div>
 
         <div class="space-y-6">
-            <!-- Rentang Tanggal Filter -->
-            <div class="glass-card p-6">
-                <h3 class="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3">Rentang Tanggal</h3>
-                <form @submit.prevent="applyFilter" class="flex flex-wrap items-end gap-4">
-                    <div>
-                        <label for="date_from" class="form-label">Dari</label>
-                        <input id="date_from" v-model="filterDates.date_from" type="date" class="form-input" />
+            <!-- ── Premium Filter Card ─────────────────── -->
+            <div class="bg-white dark:bg-gray-900 rounded-3xl shadow-sm border border-gray-200/80 dark:border-gray-800/80 overflow-hidden">
+                <div class="relative overflow-hidden">
+                    <div class="absolute inset-0 bg-gradient-to-r from-indigo-50/40 to-transparent dark:from-indigo-950/15" />
+                    <div class="relative px-6 py-5 md:px-8 md:py-6">
+                        <div class="flex items-center gap-2.5 mb-4">
+                            <div class="w-8 h-8 rounded-xl bg-indigo-100 dark:bg-indigo-900/50 flex items-center justify-center">
+                                <FunnelIcon class="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                            </div>
+                            <h3 class="text-sm font-semibold text-gray-700 dark:text-gray-300">Rentang Tanggal</h3>
+                        </div>
+                        <form @submit.prevent="applyFilter" class="flex flex-wrap items-end gap-4">
+                            <div>
+                                <label for="date_from" class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">Dari</label>
+                                <input id="date_from" v-model="filterDates.date_from" type="date"
+                                    class="block rounded-xl border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-950 text-gray-900 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500/20 focus:ring-4 text-sm px-4 py-2.5 transition-all duration-200" />
+                            </div>
+                            <div>
+                                <label for="date_to" class="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">Sampai</label>
+                                <input id="date_to" v-model="filterDates.date_to" type="date"
+                                    class="block rounded-xl border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-950 text-gray-900 dark:text-white shadow-sm focus:border-indigo-500 focus:ring-indigo-500/20 focus:ring-4 text-sm px-4 py-2.5 transition-all duration-200" />
+                            </div>
+                            <button type="submit"
+                                class="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold text-white bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:ring-offset-2 transition-all duration-200 shadow-md shadow-indigo-500/20 active:scale-[0.97]">
+                                Terapkan Filter
+                            </button>
+                        </form>
                     </div>
-                    <div>
-                        <label for="date_to" class="form-label">Sampai</label>
-                        <input id="date_to" v-model="filterDates.date_to" type="date" class="form-input" />
-                    </div>
-                    <button type="submit" class="btn-primary">Terapkan Filter</button>
-                </form>
-            </div>
-
-            <!-- Summary Stats -->
-            <div class="grid grid-cols-1 sm:grid-cols-3 gap-6">
-                <StatCard
-                    title="Total Kotor"
-                    :value="formatCurrency(summary.total_gross)"
-                    :icon="CurrencyDollarIcon"
-                    color="indigo"
-                />
-                <StatCard
-                    title="Total Bersih"
-                    :value="formatCurrency(summary.total_net)"
-                    :icon="UsersIcon"
-                    color="emerald"
-                />
-                <StatCard
-                    title="Total PPh21"
-                    :value="formatCurrency(summary.total_pph21)"
-                    :icon="DocumentTextIcon"
-                    color="amber"
-                />
-            </div>
-
-            <!-- Payroll Data Table -->
-            <div class="table-container">
-                <div class="p-6">
-                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Daftar Penggajian</h3>
                 </div>
-                <DataTable
-                    v-if="payrolls.data.length"
-                    :columns="columns"
-                    :rows="rows"
-                    search-placeholder="Cari penggajian..."
-                    :server-side="true"
-                    :total="payrolls.total"
-                    :current-page="payrolls.current_page"
-                    :last-page="payrolls.last_page"
-                    :per-page="payrolls.per_page"
-                    :filters="filters"
-                    base-route="/reports/payroll"
-                >
-                    <template #cell-status="{ value }">
-                        <Badge :variant="statusVariant(value)">{{ value }}</Badge>
-                    </template>
-                    <template #cell-actions="{ row }">
-                        <Link
-                            :href="route('payroll.show', row.id)"
-                            class="btn-secondary text-xs py-1.5 px-3"
-                        >
-                            <EyeIcon class="w-4 h-4" />
-                            Lihat
-                        </Link>
-                    </template>
-                </DataTable>
-                <EmptyState
-                    v-else
-                    title="Tidak ada data penggajian"
-                    description="Pilih rentang tanggal dan terapkan filter untuk melihat laporan."
-                />
+            </div>
+
+            <!-- ── Summary Stats ───────────────────────── -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-5">
+                <StatCard title="Total Kotor" :value="formatCurrency(summary.total_gross)" :icon="CurrencyDollarIcon" color="indigo" />
+                <StatCard title="Total Bersih" :value="formatCurrency(summary.total_net)" :icon="UsersIcon" color="emerald" />
+                <StatCard title="Total PPh21" :value="formatCurrency(summary.total_pph21)" :icon="DocumentTextIcon" color="amber" />
+            </div>
+
+            <!-- ── Payroll Data Table ──────────────────── -->
+            <div class="bg-white dark:bg-gray-900 rounded-3xl shadow-sm border border-gray-200/80 dark:border-gray-800/80 overflow-hidden">
+                <div class="px-6 py-5 md:px-8 md:py-6 border-b border-gray-100 dark:border-gray-800">
+                    <h3 class="text-lg font-bold text-gray-900 dark:text-white">Daftar Penggajian</h3>
+                </div>
+
+                <div v-if="payrolls.data.length" class="p-0">
+                    <DataTable
+                        :columns="columns"
+                        :rows="rows"
+                        search-placeholder="Cari penggajian..."
+                        :server-side="true"
+                        :total="payrolls.total"
+                        :current-page="payrolls.current_page"
+                        :last-page="payrolls.last_page"
+                        :per-page="payrolls.per_page"
+                        :filters="filters"
+                        base-route="/reports/payroll"
+                    >
+                        <template #cell-status="{ value }">
+                            <Badge :variant="statusVariant(value)">{{ value }}</Badge>
+                        </template>
+                        <template #cell-actions="{ row }">
+                            <Link :href="route('payroll.show', row.id)"
+                                class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 dark:text-indigo-300 dark:bg-indigo-950/50 dark:hover:bg-indigo-900/50 transition-all duration-200 active:scale-[0.97]">
+                                <EyeIcon class="w-4 h-4" />
+                                Lihat
+                            </Link>
+                        </template>
+                    </DataTable>
+                </div>
+                <div v-else class="p-8">
+                    <EmptyState
+                        title="Tidak ada data penggajian"
+                        description="Pilih rentang tanggal dan terapkan filter untuk melihat laporan."
+                    />
+                </div>
             </div>
         </div>
     </AuthenticatedLayout>

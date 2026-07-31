@@ -1,9 +1,9 @@
 {
     "$schema": "https://getcomposer.org/schema.json",
-    "name": "laravel/laravel",
+    "name": "payrollpro/payrollpro",
     "type": "project",
-    "description": "The skeleton application for the Laravel framework.",
-    "keywords": ["laravel", "framework"],
+    "description": "PayrollPro — Indonesian HR, attendance, and payroll management system.",
+    "keywords": ["laravel", "hr", "payroll", "attendance", "bpjs", "pph21"],
     "license": "MIT",
     "require": {
         "php": "^8.2",
@@ -15,6 +15,7 @@
         "laravel/sanctum": "^4.0",
         "laravel/tinker": "^2.10.1",
         "maatwebsite/excel": "^3.1",
+        "phpoffice/phpword": "^1.4",
         "sentry/sentry-laravel": "^4.25",
         "spatie/laravel-permission": "^6.25",
         "tightenco/ziggy": "^2.0"

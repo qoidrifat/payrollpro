@@ -5,6 +5,7 @@ namespace App\Services;
 use App\DTOs\PayrollCalculationResult;
 use App\Models\Employee;
 use App\Models\Payroll;
+use Illuminate\Support\Facades\DB;
 
 class PayrollCalculator
 {
@@ -51,7 +52,7 @@ class PayrollCalculator
         $overtime = $components->where('type', 'overtime')->sum('amount');
 
         $allowancesTotal = (float) $allowances;
-        $deductionsTotal = (float) $deductions;
+        $componentDeductions = (float) $deductions;
         $bonusesTotal = (float) $bonuses;
         $componentOvertime = (float) $overtime;
 
@@ -111,6 +112,15 @@ class PayrollCalculator
         $ptkp = $this->taxCalculator->getPtkp($maritalStatus, $dependents);
         $ptkpCategory = $this->taxCalculator->getPtkpCategory($maritalStatus, $dependents);
 
+        // Attendance-based deductions for the period (absent / late / half_day).
+        // Official leave (sick/leave) and present days are exempt.
+        // See config/attendance.php -> payroll_deduction.
+        $attendanceDeduction = $this->computeAttendanceDeduction($employee, $periodStart, $periodEnd);
+
+        // "Other" deductions shown on the payslip = manual salary components
+        // (loans, etc.) + attendance-based deductions.
+        $deductionsTotal = round($componentDeductions + $attendanceDeduction['total'], 2);
+
         // Total deductions from employee salary
         $totalDeductions = round($bpjsKes['employee'] + $bpjsJht['employee'] + $bpjsJp['employee'] + $pph21 + $deductionsTotal, 2);
 
@@ -152,8 +162,64 @@ class PayrollCalculator
                 'tax_year' => $this->taxCalculator->getTaxYear(),
                 'gross_annualized' => $grossSalary * 12,
                 'prorata_factor' => $prorataFactor,
+                'component_deductions' => $componentDeductions,
+                'attendance_deduction' => $attendanceDeduction['details'],
             ],
         );
+    }
+
+    /**
+     * Compute attendance-based deductions for an employee over the payroll
+     * period. Unexcused statuses are charged a configurable rate; official
+     * leave (sick/leave) and present days are exempt.
+     *
+     * @return array{total: float, details: array}
+     */
+    private function computeAttendanceDeduction(Employee $employee, string $periodStart, string $periodEnd): array
+    {
+        $config = config('attendance.payroll_deduction', []);
+
+        if (empty($config['enabled'])) {
+            return ['total' => 0.0, 'details' => ['enabled' => false]];
+        }
+
+        $rates = $config['rates'] ?? [];
+
+        // Raw count per status for the period (bypasses the enum cast so keys
+        // stay plain strings). Attendances are already scoped by employee_id.
+        $counts = DB::table('attendances')
+            ->where('employee_id', $employee->id)
+            ->whereBetween('date', [$periodStart, $periodEnd])
+            ->selectRaw('status, COUNT(*) as c')
+            ->groupBy('status')
+            ->pluck('c', 'status')
+            ->toArray();
+
+        $absentCount  = (int) ($counts['absent'] ?? 0);
+        $lateCount    = (int) ($counts['late'] ?? 0);
+        $halfDayCount = (int) ($counts['half_day'] ?? 0);
+
+        $absentRate  = (float) ($rates['absent'] ?? 0);
+        $lateRate    = (float) ($rates['late'] ?? 0);
+        $halfDayRate = (float) ($rates['half_day'] ?? 0);
+
+        $absentAmount  = $absentCount * $absentRate;
+        $lateAmount    = $lateCount * $lateRate;
+        $halfDayAmount = $halfDayCount * $halfDayRate;
+
+        $total = round($absentAmount + $lateAmount + $halfDayAmount, 2);
+
+        return [
+            'total' => $total,
+            'details' => [
+                'enabled'  => true,
+                'absent'   => ['count' => $absentCount,  'rate' => $absentRate,  'amount' => $absentAmount],
+                'late'     => ['count' => $lateCount,     'rate' => $lateRate,    'amount' => $lateAmount],
+                'half_day' => ['count' => $halfDayCount,  'rate' => $halfDayRate, 'amount' => $halfDayAmount],
+                'exempt'   => $config['exempt'] ?? ['present', 'sick', 'leave'],
+                'total'    => $total,
+            ],
+        ];
     }
 
     /**

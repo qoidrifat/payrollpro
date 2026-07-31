@@ -40,9 +40,9 @@ const form = useForm({
 
 const submit = () => {
     if (isEditing) {
-        form.put(`/employees/${employee.id}`);
+        form.put(route('employees.update', employee.id));
     } else {
-        form.post('/employees');
+        form.post(route('employees.store'));
     }
 };
 </script>
@@ -51,7 +51,7 @@ const submit = () => {
     <AuthenticatedLayout>
         <PageHeader :title="isEditing ? 'Ubah Karyawan' : 'Tambah Karyawan'" :description="isEditing ? `Mengubah ${employee.full_name}` : 'Tambah anggota tim baru.'">
             <template #actions>
-                <Link href="/employees" class="btn-secondary">
+                <Link :href="route('employees.index')" class="btn-secondary">
                     <ArrowLeftIcon class="w-5 h-5" />
                     Kembali ke Daftar
                 </Link>
@@ -202,7 +202,7 @@ const submit = () => {
                 <button type="submit" class="btn-primary" :disabled="form.processing">
                     {{ form.processing ? 'Menyimpan...' : (isEditing ? 'Simpan Perubahan' : 'Simpan Karyawan') }}
                 </button>
-                <Link href="/employees" class="btn-secondary">Batal</Link>
+                <Link :href="route('employees.index')" class="btn-secondary">Batal</Link>
             </div>
         </form>
     </AuthenticatedLayout>

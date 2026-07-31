@@ -1,0 +1,17 @@
+# Local environment
+.env
+
+# Dependencies
+node_modules/
+
+# Playwright browser binaries
+ffmpeg/
+
+# Generated media (recordings, narration, music, subtitles)
+output/
+voice/*.wav
+voice/*.mp3
+voice/*.srt
+subtitle/*.srt
+assets/*.wav
+assets/*.mp3

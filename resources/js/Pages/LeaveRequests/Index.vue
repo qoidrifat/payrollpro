@@ -7,12 +7,7 @@ import DataTable from '@/Components/DataTable.vue'
 import Badge from '@/Components/Badge.vue'
 import Modal from '@/Components/Modal.vue'
 import ConfirmDialog from '@/Components/ConfirmDialog.vue'
-import {
-    CalendarDaysIcon,
-    CheckCircleIcon,
-    XCircleIcon,
-    FunnelIcon,
-} from '@heroicons/vue/24/outline'
+import { CalendarDaysIcon, CheckCircleIcon, XCircleIcon, FunnelIcon } from '@heroicons/vue/24/outline'
 
 const page = usePage()
 const leaveRequests = computed(() => page.props.leaveRequests || { data: [] })
@@ -45,16 +40,7 @@ const rows = computed(() => leaveRequests.value.data.map((leave) => ({
 })))
 
 const leaveTypeLabel = (type) => {
-    const map = {
-        annual: 'Cuti Tahunan',
-        sick: 'Cuti Sakit',
-        personal: 'Cuti Pribadi',
-        maternity: 'Cuti Melahirkan',
-        paternity: 'Cuti Ayah',
-        marriage: 'Cuti Menikah',
-        bereavement: 'Cuti Duka',
-        unpaid: 'Cuti Tanpa Dibayar',
-    }
+    const map = { annual: 'Cuti Tahunan', sick: 'Cuti Sakit', personal: 'Cuti Pribadi', maternity: 'Cuti Melahirkan', paternity: 'Cuti Ayah', marriage: 'Cuti Menikah', bereavement: 'Cuti Duka', unpaid: 'Cuti Tanpa Dibayar' }
     return map[type] || type
 }
 
@@ -70,113 +56,84 @@ const statusVariant = (status) => {
 
 const formatDate = (date) => {
     if (!date) return '-'
-    return new Intl.DateTimeFormat('id-ID', {
-        day: '2-digit',
-        month: 'short',
-        year: 'numeric',
-    }).format(new Date(date))
+    return new Intl.DateTimeFormat('id-ID', { day: '2-digit', month: 'short', year: 'numeric' }).format(new Date(date))
 }
 
 const applyStatusFilter = () => {
-    router.get('/leave-requests', {
-        ...filters.value,
-        status: selectedStatus.value || null,
-        page: 1,
-    }, { preserveState: true, preserveScroll: true, replace: true })
+    router.get(route('leave-requests.index'), { ...filters.value, status: selectedStatus.value || null, page: 1 }, { preserveState: true, preserveScroll: true, replace: true })
 }
 
 const clearStatusFilter = () => {
     selectedStatus.value = ''
-    router.get('/leave-requests', {
-        search: filters.value.search || null,
-        page: 1,
-    }, { preserveState: true, preserveScroll: true, replace: true })
+    router.get(route('leave-requests.index'), { search: filters.value.search || null, page: 1 }, { preserveState: true, preserveScroll: true, replace: true })
 }
 
-const confirmApprove = (leave) => {
-    selectedLeave.value = leave
-    showApproveDialog.value = true
-}
-
-const openRejectModal = (leave) => {
-    selectedLeave.value = leave
-    rejectionReason.value = ''
-    showRejectModal.value = true
-}
+const confirmApprove = (leave) => { selectedLeave.value = leave; showApproveDialog.value = true }
+const openRejectModal = (leave) => { selectedLeave.value = leave; rejectionReason.value = ''; showRejectModal.value = true }
 
 const approveLeave = () => {
     if (!selectedLeave.value) return
     processing.value = true
     router.post(route('leave-requests.approve', selectedLeave.value.id), {}, {
         preserveScroll: true,
-        onFinish: () => {
-            processing.value = false
-            showApproveDialog.value = false
-            selectedLeave.value = null
-        },
+        onFinish: () => { processing.value = false; showApproveDialog.value = false; selectedLeave.value = null },
     })
 }
 
 const rejectLeave = () => {
     if (!selectedLeave.value) return
     processing.value = true
-    router.post(route('leave-requests.reject', selectedLeave.value.id), {
-        rejection_reason: rejectionReason.value,
-    }, {
+    router.post(route('leave-requests.reject', selectedLeave.value.id), { rejection_reason: rejectionReason.value }, {
         preserveScroll: true,
-        onSuccess: () => {
-            showRejectModal.value = false
-            selectedLeave.value = null
-            rejectionReason.value = ''
-        },
-        onFinish: () => {
-            processing.value = false
-        },
+        onSuccess: () => { showRejectModal.value = false; selectedLeave.value = null; rejectionReason.value = '' },
+        onFinish: () => { processing.value = false },
     })
 }
 </script>
 
 <template>
     <AuthenticatedLayout>
-        <PageHeader title="Pengajuan Cuti" description="Review, setujui, atau tolak permintaan cuti karyawan secara terpusat." />
+        <PageHeader title="Pengajuan Cuti" description="Review, setujui, atau tolak permintaan cuti karyawan" />
 
         <div class="space-y-6">
+            <!-- Stats -->
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div class="glass-card p-5">
                     <div class="flex items-center justify-between">
                         <div>
-                            <p class="text-sm text-gray-500 dark:text-gray-400">Menunggu</p>
-                            <p class="mt-1 text-2xl font-display font-bold text-gray-900 dark:text-white">{{ summary.pending ?? 0 }}</p>
+                            <p class="text-sm text-gray-500 dark:text-gray-400 uppercase tracking-wider font-medium">Menunggu</p>
+                            <p class="mt-1 text-2xl lg:text-3xl font-extrabold text-gray-900 dark:text-white">{{ summary.pending ?? 0 }}</p>
                         </div>
-                        <div class="w-11 h-11 rounded-xl bg-amber-100 dark:bg-amber-950 flex items-center justify-center">
-                            <CalendarDaysIcon class="w-5 h-5 text-amber-700 dark:text-amber-300" />
-                        </div>
-                    </div>
-                </div>
-                <div class="glass-card p-5">
-                    <div class="flex items-center justify-between">
-                        <div>
-                            <p class="text-sm text-gray-500 dark:text-gray-400">Disetujui</p>
-                            <p class="mt-1 text-2xl font-display font-bold text-gray-900 dark:text-white">{{ summary.approved ?? 0 }}</p>
-                        </div>
-                        <div class="w-11 h-11 rounded-xl bg-emerald-100 dark:bg-emerald-950 flex items-center justify-center">
-                            <CheckCircleIcon class="w-5 h-5 text-emerald-700 dark:text-emerald-300" />
+                        <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center shadow-sm">
+                            <CalendarDaysIcon class="w-5 h-5 text-white" />
                         </div>
                     </div>
                 </div>
                 <div class="glass-card p-5">
                     <div class="flex items-center justify-between">
                         <div>
-                            <p class="text-sm text-gray-500 dark:text-gray-400">Ditolak</p>
-                            <p class="mt-1 text-2xl font-display font-bold text-gray-900 dark:text-white">{{ summary.rejected ?? 0 }}</p>
+                            <p class="text-sm text-gray-500 dark:text-gray-400 uppercase tracking-wider font-medium">Disetujui</p>
+                            <p class="mt-1 text-2xl lg:text-3xl font-extrabold text-gray-900 dark:text-white">{{ summary.approved ?? 0 }}</p>
                         </div>
-                        <div class="w-11 h-11 rounded-xl bg-red-100 dark:bg-red-950 flex items-center justify-center">
-                            <XCircleIcon class="w-5 h-5 text-red-700 dark:text-red-300" />
+                        <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center shadow-sm">
+                            <CheckCircleIcon class="w-5 h-5 text-white" />
+                        </div>
+                    </div>
+                </div>
+                <div class="glass-card p-5">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm text-gray-500 dark:text-gray-400 uppercase tracking-wider font-medium">Ditolak</p>
+                            <p class="mt-1 text-2xl lg:text-3xl font-extrabold text-gray-900 dark:text-white">{{ summary.rejected ?? 0 }}</p>
+                        </div>
+                        <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-red-400 to-rose-500 flex items-center justify-center shadow-sm">
+                            <XCircleIcon class="w-5 h-5 text-white" />
                         </div>
                     </div>
                 </div>
             </div>
 
+            <!-- Table -->
             <DataTable
                 :columns="columns"
                 :rows="rows"
@@ -192,80 +149,44 @@ const rejectLeave = () => {
                 <template #toolbar>
                     <div class="flex items-center gap-2">
                         <FunnelIcon class="w-4 h-4 text-gray-400" />
-                        <select
-                            v-model="selectedStatus"
-                            class="form-input w-auto min-w-[150px] text-sm py-1.5"
-                            @change="applyStatusFilter"
-                        >
+                        <select v-model="selectedStatus" class="form-input w-auto min-w-[150px] text-sm py-1.5" @change="applyStatusFilter">
                             <option value="">Semua Status</option>
                             <option value="pending">Menunggu</option>
                             <option value="approved">Disetujui</option>
                             <option value="rejected">Ditolak</option>
                         </select>
                     </div>
-                    <button
-                        v-if="selectedStatus"
-                        class="text-xs text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 font-medium whitespace-nowrap transition-colors"
-                        @click="clearStatusFilter"
-                    >
+                    <button v-if="selectedStatus" class="text-xs text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 font-medium transition-colors" @click="clearStatusFilter">
                         &times; Hapus
                     </button>
-                    <div class="text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap border-l border-gray-200 dark:border-gray-700 pl-3">
+                    <div class="text-sm text-gray-500 dark:text-gray-400 border-l border-gray-200 dark:border-gray-700 pl-3">
                         Total: <strong>{{ leaveRequests.total || 0 }}</strong>
                     </div>
                 </template>
-
                 <template #cell-employee_name="{ row }">
                     <div class="flex items-center gap-3">
-                        <div class="w-9 h-9 rounded-full bg-primary-100 dark:bg-primary-900 flex items-center justify-center">
-                            <span class="text-xs font-semibold text-primary-700 dark:text-primary-300">
-                                {{ row.employee?.first_name?.charAt(0) }}{{ row.employee?.last_name?.charAt(0) || '' }}
-                            </span>
+                        <div class="w-9 h-9 rounded-full bg-gradient-to-br from-primary-500 to-purple-600 flex items-center justify-center shadow-sm ring-2 ring-white dark:ring-gray-900">
+                            <span class="text-xs font-bold text-white">{{ row.employee?.first_name?.charAt(0) }}{{ row.employee?.last_name?.charAt(0) || '' }}</span>
                         </div>
                         <div>
-                            <p class="font-medium text-gray-900 dark:text-white">{{ row.employee_name }}</p>
+                            <p class="font-semibold text-gray-900 dark:text-white">{{ row.employee_name }}</p>
                             <p class="text-xs text-gray-400">{{ row.employee?.department || row.employee?.position || '-' }}</p>
                         </div>
                     </div>
                 </template>
-                <template #cell-total_days="{ value }">
-                    {{ value }} hari
-                </template>
-                <template #cell-status="{ value }">
-                    <Badge :variant="statusVariant(value)">{{ statusLabel(value) }}</Badge>
-                </template>
+                <template #cell-total_days="{ value }">{{ value }} hari</template>
+                <template #cell-status="{ value }"><Badge :variant="statusVariant(value)">{{ statusLabel(value) }}</Badge></template>
                 <template #cell-actions="{ row }">
                     <div class="flex items-center gap-2" @click.stop>
-                        <button
-                            v-if="row.status === 'pending'"
-                            class="btn-primary text-xs py-1.5 px-3"
-                            @click="confirmApprove(row)"
-                        >
-                            Setujui
-                        </button>
-                        <button
-                            v-if="row.status === 'pending'"
-                            class="btn-danger text-xs py-1.5 px-3"
-                            @click="openRejectModal(row)"
-                        >
-                            Tolak
-                        </button>
+                        <button v-if="row.status === 'pending'" class="btn-success text-xs py-1.5 px-3" @click="confirmApprove(row)">Setujui</button>
+                        <button v-if="row.status === 'pending'" class="btn-danger text-xs py-1.5 px-3" @click="openRejectModal(row)">Tolak</button>
                         <span v-else class="text-xs text-gray-400">Selesai</span>
                     </div>
                 </template>
             </DataTable>
         </div>
 
-        <ConfirmDialog
-            :show="showApproveDialog"
-            title="Setujui Pengajuan Cuti"
-            :message="`Setujui cuti ${selectedLeave?.employee_name || 'karyawan'} untuk periode ${selectedLeave?.period || ''}?`"
-            confirm-text="Setujui"
-            confirm-variant="primary"
-            :loading="processing"
-            @confirm="approveLeave"
-            @close="showApproveDialog = false"
-        />
+        <ConfirmDialog :show="showApproveDialog" title="Setujui Pengajuan Cuti" :message="`Setujui cuti ${selectedLeave?.employee_name || 'karyawan'}?`" confirm-text="Setujui" confirm-variant="primary" :loading="processing" @confirm="approveLeave" @close="showApproveDialog = false" />
 
         <Modal :show="showRejectModal" title="Tolak Pengajuan Cuti" @close="showRejectModal = false">
             <div class="space-y-4">
@@ -275,22 +196,12 @@ const rejectLeave = () => {
                 </div>
                 <div>
                     <label class="form-label">Alasan Penolakan</label>
-                    <textarea
-                        v-model="rejectionReason"
-                        rows="4"
-                        class="form-input"
-                        placeholder="Tuliskan alasan agar karyawan memahami keputusan ini..."
-                    />
-                    <p v-if="page.props.errors?.rejection_reason" class="mt-1 text-xs text-red-600">
-                        {{ page.props.errors.rejection_reason }}
-                    </p>
+                    <textarea v-model="rejectionReason" rows="4" class="form-input" placeholder="Tuliskan alasan agar karyawan memahami..." />
                 </div>
             </div>
             <template #footer>
                 <button class="btn-secondary" :disabled="processing" @click="showRejectModal = false">Batal</button>
-                <button class="btn-danger" :disabled="processing || !rejectionReason.trim()" @click="rejectLeave">
-                    {{ processing ? 'Memproses...' : 'Tolak Pengajuan' }}
-                </button>
+                <button class="btn-danger" :disabled="processing || !rejectionReason.trim()" @click="rejectLeave">{{ processing ? 'Memproses...' : 'Tolak Pengajuan' }}</button>
             </template>
         </Modal>
     </AuthenticatedLayout>

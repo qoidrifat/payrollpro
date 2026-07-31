@@ -11,6 +11,9 @@ import {
     PlusIcon,
     PencilIcon,
     TrashIcon,
+    CurrencyDollarIcon,
+    BanknotesIcon,
+    ShieldCheckIcon,
 } from '@heroicons/vue/24/outline'
 
 const page = usePage()
@@ -124,9 +127,9 @@ const deleteComponent = () => {
         <template #header>
             <PageHeader :title="'Konfigurasi Gaji: ' + employee?.full_name" description="Kelola komponen gaji dan gaji pokok">
                 <template #actions>
-                    <Link :href="route('salary-config.index')" class="btn-secondary">
+                    <Link :href="route('salary-config.index')" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-300 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-800 hover:shadow-md active:scale-[0.98] transition-all duration-200">
                         <ArrowLeftIcon class="w-5 h-5" />
-                        Kembali ke Konfigurasi Gaji
+                        Kembali
                     </Link>
                 </template>
             </PageHeader>
@@ -134,24 +137,33 @@ const deleteComponent = () => {
 
         <div class="py-8 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto space-y-6">
             <!-- Employee Info Header -->
-            <div class="glass-card p-6">
-                <div class="space-y-4">
-                    <div class="flex flex-col sm:flex-row sm:items-center gap-4">
+            <div class="relative overflow-hidden rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-sm">
+                <div class="absolute inset-0 bg-gradient-to-r from-indigo-500/5 to-purple-500/5 dark:from-indigo-500/10 dark:to-purple-500/10" />
+                <div class="relative z-10 p-6">
+                    <div class="flex items-start gap-4">
+                        <div class="flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white shadow-lg shadow-indigo-500/25">
+                            <span class="text-xl font-bold">{{ employee?.full_name?.charAt(0) }}</span>
+                        </div>
                         <div class="flex-1">
-                            <h2 class="text-2xl font-bold text-gray-900 dark:text-white">{{ employee.full_name }}</h2>
-                            <p class="text-gray-500 dark:text-gray-400">{{ employee.position }} — {{ employee.department }}</p>
+                            <h2 class="text-2xl font-bold text-gray-900 dark:text-white">{{ employee?.full_name }}</h2>
+                            <p class="text-gray-500 dark:text-gray-400 mt-0.5">{{ employee?.position }} — {{ employee?.department }}</p>
                         </div>
                     </div>
 
                     <!-- Editable Base Salary -->
-                    <form @submit.prevent="saveBaseSalary" class="flex items-end gap-4 flex-wrap">
-                        <div>
-                            <label for="base_salary" class="form-label">Gaji Pokok</label>
+                    <form @submit.prevent="saveBaseSalary" class="mt-6 flex items-end gap-4 flex-wrap">
+                        <div class="flex-1 min-w-[200px]">
+                            <label for="base_salary" class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
+                                <span class="inline-flex items-center gap-1.5">
+                                    <CurrencyDollarIcon class="w-4 h-4" />
+                                    Gaji Pokok
+                                </span>
+                            </label>
                             <input
                                 id="base_salary"
                                 v-model.number="baseSalaryForm.base_salary"
                                 type="number"
-                                class="form-input max-w-xs"
+                                class="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-4 py-2.5 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 transition-all"
                             />
                             <p v-if="baseSalaryForm.errors.base_salary" class="mt-1 text-sm text-red-600">
                                 {{ baseSalaryForm.errors.base_salary }}
@@ -159,7 +171,7 @@ const deleteComponent = () => {
                         </div>
                         <button
                             type="submit"
-                            class="btn-primary"
+                            class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 text-white text-sm font-semibold shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/40 hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-200 disabled:opacity-60"
                             :disabled="baseSalaryForm.processing"
                         >
                             {{ baseSalaryForm.processing ? 'Menyimpan...' : 'Simpan' }}
@@ -169,62 +181,72 @@ const deleteComponent = () => {
             </div>
 
             <!-- Salary Components Section -->
-            <div class="glass-card p-6">
-                <div class="flex items-center justify-between mb-4">
-                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Komponen Gaji</h3>
-                    <button @click="openAddComponent" class="btn-primary text-sm">
+            <div class="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-sm overflow-hidden">
+                <div class="flex items-center justify-between px-6 py-5 border-b border-gray-100 dark:border-gray-800">
+                    <div class="flex items-center gap-3">
+                        <div class="flex items-center justify-center w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-sm">
+                            <BanknotesIcon class="w-5 h-5" />
+                        </div>
+                        <div>
+                            <h3 class="text-base font-semibold text-gray-900 dark:text-white">Komponen Gaji</h3>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">Tunjangan dan potongan gaji</p>
+                        </div>
+                    </div>
+                    <button @click="openAddComponent" class="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white text-sm font-semibold shadow-md hover:shadow-lg hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-200">
                         <PlusIcon class="w-4 h-4" />
                         Tambah Komponen
                     </button>
                 </div>
 
-                <div class="overflow-x-auto">
-                    <table class="w-full text-sm" v-if="components.length">
-                        <thead>
-                            <tr class="border-y border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
-                                <th class="text-left py-3 px-4 font-medium text-gray-500 dark:text-gray-400">Tipe</th>
-                                <th class="text-left py-3 px-4 font-medium text-gray-500 dark:text-gray-400">Nama</th>
-                                <th class="text-right py-3 px-4 font-medium text-gray-500 dark:text-gray-400">Jumlah</th>
-                                <th class="text-center py-3 px-4 font-medium text-gray-500 dark:text-gray-400">Kena Pajak</th>
-                                <th class="text-center py-3 px-4 font-medium text-gray-500 dark:text-gray-400">Aksi</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr
-                                v-for="comp in components"
-                                :key="comp.id"
-                                class="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/30"
-                            >
-                                <td class="py-3 px-4">
-                                    <Badge :variant="comp.type === 'allowance' ? 'success' : 'danger'">
-                                        {{ comp.type === 'allowance' ? 'Tunjangan' : 'Potongan' }}
-                                    </Badge>
-                                </td>
-                                <td class="py-3 px-4 text-gray-900 dark:text-white">{{ comp.name }}</td>
-                                <td class="py-3 px-4 text-right"
-                                    :class="comp.type === 'allowance' ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'">
-                                    {{ comp.type === 'deduction' ? '-' : '+' }}{{ formatCurrency(comp.amount) }}
-                                </td>
-                                <td class="py-3 px-4 text-center">
-                                    <Badge :variant="comp.is_taxable ? 'warning' : 'default'">
-                                        {{ comp.is_taxable ? 'Ya' : 'Tidak' }}
-                                    </Badge>
-                                </td>
-                                <td class="py-3 px-4 text-center">
-                                    <div class="flex items-center justify-center gap-2">
-                                        <button @click="openEditComponent(comp)" class="btn-secondary text-xs py-1.5 px-3">
-                                            <PencilIcon class="w-4 h-4" />
-                                            Ubah
-                                        </button>
-                                        <button @click="confirmDeleteComponent(comp)" class="btn-danger text-xs py-1.5 px-3">
-                                            <TrashIcon class="w-4 h-4" />
-                                            Hapus
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
+                <div class="p-6">
+                    <div class="overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-700" v-if="components.length">
+                        <table class="w-full text-sm">
+                            <thead>
+                                <tr class="bg-gray-50 dark:bg-gray-800/50">
+                                    <th class="text-left py-3 px-4 font-semibold text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wider">Tipe</th>
+                                    <th class="text-left py-3 px-4 font-semibold text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wider">Nama</th>
+                                    <th class="text-right py-3 px-4 font-semibold text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wider">Jumlah</th>
+                                    <th class="text-center py-3 px-4 font-semibold text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wider">Kena Pajak</th>
+                                    <th class="text-center py-3 px-4 font-semibold text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wider">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr
+                                    v-for="comp in components"
+                                    :key="comp.id"
+                                    class="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors"
+                                >
+                                    <td class="py-3.5 px-4">
+                                        <Badge :variant="comp.type === 'allowance' ? 'success' : 'danger'">
+                                            {{ comp.type === 'allowance' ? 'Tunjangan' : 'Potongan' }}
+                                        </Badge>
+                                    </td>
+                                    <td class="py-3.5 px-4 font-medium text-gray-900 dark:text-white">{{ comp.name }}</td>
+                                    <td class="py-3.5 px-4 text-right font-semibold tabular-nums"
+                                        :class="comp.type === 'allowance' ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'">
+                                        {{ comp.type === 'deduction' ? '-' : '+' }}{{ formatCurrency(comp.amount) }}
+                                    </td>
+                                    <td class="py-3.5 px-4 text-center">
+                                        <Badge :variant="comp.is_taxable ? 'warning' : 'default'">
+                                            {{ comp.is_taxable ? 'Ya' : 'Tidak' }}
+                                        </Badge>
+                                    </td>
+                                    <td class="py-3.5 px-4 text-center">
+                                        <div class="flex items-center justify-center gap-2">
+                                            <button @click="openEditComponent(comp)" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border-2 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 text-xs font-semibold hover:bg-gray-50 dark:hover:bg-gray-800 hover:shadow-md active:scale-[0.98] transition-all duration-200">
+                                                <PencilIcon class="w-3.5 h-3.5" />
+                                                Ubah
+                                            </button>
+                                            <button @click="confirmDeleteComponent(comp)" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500 text-white text-xs font-semibold shadow-md hover:bg-red-600 hover:shadow-lg active:scale-[0.98] transition-all duration-200">
+                                                <TrashIcon class="w-3.5 h-3.5" />
+                                                Hapus
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
                     <p v-else class="text-sm text-gray-500 dark:text-gray-400 text-center py-8">
                         Belum ada komponen gaji. Tambahkan tunjangan atau potongan untuk membangun struktur gaji.
                     </p>
@@ -232,37 +254,47 @@ const deleteComponent = () => {
             </div>
 
             <!-- BPJS Config Reference -->
-            <div class="glass-card p-6">
-                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Referensi Konfigurasi BPJS</h3>
-                <div class="overflow-x-auto">
-                    <table class="w-full text-sm">
-                        <thead>
-                            <tr class="border-y border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
-                                <th class="text-left py-3 px-4 font-medium text-gray-500 dark:text-gray-400">Komponen</th>
-                                <th class="text-right py-3 px-4 font-medium text-gray-500 dark:text-gray-400">Tarif Pemberi Kerja</th>
-                                <th class="text-right py-3 px-4 font-medium text-gray-500 dark:text-gray-400">Tarif Karyawan</th>
-                                <th class="text-right py-3 px-4 font-medium text-gray-500 dark:text-gray-400">Batas Maksimal</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr
-                                v-for="bpjs in bpjsConfig"
-                                :key="bpjs.id"
-                                class="border-b border-gray-100 dark:border-gray-800"
-                            >
-                                <td class="py-3 px-4 text-gray-900 dark:text-white font-medium">{{ bpjs.name }}</td>
-                                <td class="py-3 px-4 text-right text-gray-900 dark:text-white">{{ bpjs.employer_rate }}%</td>
-                                <td class="py-3 px-4 text-right text-gray-900 dark:text-white">{{ bpjs.employee_rate }}%</td>
-                                <td class="py-3 px-4 text-right text-gray-900 dark:text-white">
-                                    {{ bpjs.cap_amount ? formatCurrency(bpjs.cap_amount) : '—' }}
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
+            <div class="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-sm overflow-hidden">
+                <div class="flex items-center gap-3 px-6 py-5 border-b border-gray-100 dark:border-gray-800">
+                    <div class="flex items-center justify-center w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-sm">
+                        <ShieldCheckIcon class="w-5 h-5" />
+                    </div>
+                    <div>
+                        <h3 class="text-base font-semibold text-gray-900 dark:text-white">Referensi Konfigurasi BPJS</h3>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">Tarif BPJS dikonfigurasi secara global</p>
+                    </div>
                 </div>
-                <p class="mt-4 text-xs text-gray-400 dark:text-gray-500">
-                    Tarif BPJS dikonfigurasi secara global di Pengaturan. Perubahan berlaku untuk semua karyawan.
-                </p>
+                <div class="p-6">
+                    <div class="overflow-x-auto rounded-xl border border-gray-200 dark:border-gray-700">
+                        <table class="w-full text-sm">
+                            <thead>
+                                <tr class="bg-gray-50 dark:bg-gray-800/50">
+                                    <th class="text-left py-3 px-4 font-semibold text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wider">Komponen</th>
+                                    <th class="text-right py-3 px-4 font-semibold text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wider">Tarif Pemberi Kerja</th>
+                                    <th class="text-right py-3 px-4 font-semibold text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wider">Tarif Karyawan</th>
+                                    <th class="text-right py-3 px-4 font-semibold text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wider">Batas Maksimal</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr
+                                    v-for="bpjs in bpjsConfig"
+                                    :key="bpjs.id"
+                                    class="border-b border-gray-100 dark:border-gray-800 hover:bg-gray-50 dark:hover:bg-gray-800/30 transition-colors"
+                                >
+                                    <td class="py-3.5 px-4 font-semibold text-gray-900 dark:text-white">{{ bpjs.name }}</td>
+                                    <td class="py-3.5 px-4 text-right tabular-nums text-gray-900 dark:text-white">{{ bpjs.employer_rate }}%</td>
+                                    <td class="py-3.5 px-4 text-right tabular-nums text-gray-900 dark:text-white">{{ bpjs.employee_rate }}%</td>
+                                    <td class="py-3.5 px-4 text-right tabular-nums text-gray-900 dark:text-white">
+                                        {{ bpjs.cap_amount ? formatCurrency(bpjs.cap_amount) : '—' }}
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <p class="mt-4 text-xs text-gray-400 dark:text-gray-500">
+                        Tarif BPJS dikonfigurasi secara global di Pengaturan. Perubahan berlaku untuk semua karyawan.
+                    </p>
+                </div>
             </div>
         </div>
 
@@ -272,33 +304,33 @@ const deleteComponent = () => {
             :title="editingComponent ? 'Ubah Komponen' : 'Tambah Komponen'"
             @close="showComponentModal = false"
         >
-            <form @submit.prevent="submitComponent" class="space-y-4">
+            <form @submit.prevent="submitComponent" class="space-y-5">
                 <div>
-                    <label for="comp_type" class="form-label">Tipe</label>
-                    <select id="comp_type" v-model="componentForm.type" class="form-input">
+                    <label for="comp_type" class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Tipe</label>
+                    <select id="comp_type" v-model="componentForm.type" class="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-4 py-2.5 text-sm text-gray-900 dark:text-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 transition-all">
                         <option value="allowance">Tunjangan</option>
                         <option value="deduction">Potongan</option>
                     </select>
                     <p v-if="componentForm.errors.type" class="mt-1 text-sm text-red-600">{{ componentForm.errors.type }}</p>
                 </div>
                 <div>
-                    <label for="comp_name" class="form-label">Nama</label>
-                    <input id="comp_name" v-model="componentForm.name" type="text" class="form-input" placeholder="contoh: Tunjangan Transportasi" required />
+                    <label for="comp_name" class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Nama</label>
+                    <input id="comp_name" v-model="componentForm.name" type="text" class="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-4 py-2.5 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 transition-all" placeholder="contoh: Tunjangan Transportasi" required />
                     <p v-if="componentForm.errors.name" class="mt-1 text-sm text-red-600">{{ componentForm.errors.name }}</p>
                 </div>
                 <div>
-                    <label for="comp_amount" class="form-label">Jumlah (Rp)</label>
-                    <input id="comp_amount" v-model.number="componentForm.amount" type="number" class="form-input" min="0" required />
+                    <label for="comp_amount" class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Jumlah (Rp)</label>
+                    <input id="comp_amount" v-model.number="componentForm.amount" type="number" class="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-4 py-2.5 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 transition-all" min="0" required />
                     <p v-if="componentForm.errors.amount" class="mt-1 text-sm text-red-600">{{ componentForm.errors.amount }}</p>
                 </div>
-                <div class="flex items-center gap-3">
-                    <input id="comp_taxable" v-model="componentForm.is_taxable" type="checkbox" class="rounded border-gray-300 text-primary-600 focus:ring-primary-500" />
-                    <label for="comp_taxable" class="form-label !mb-0">Kena Pajak</label>
-                </div>
+                <label class="flex items-center gap-3 p-4 rounded-xl border border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-all">
+                    <input id="comp_taxable" v-model="componentForm.is_taxable" type="checkbox" class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 w-5 h-5" />
+                    <span class="text-sm font-semibold text-gray-700 dark:text-gray-300">Kena Pajak</span>
+                </label>
             </form>
             <template #footer>
-                <button @click="showComponentModal = false" class="btn-secondary" :disabled="componentForm.processing">Batal</button>
-                <button @click="submitComponent" class="btn-primary" :disabled="componentForm.processing">
+                <button @click="showComponentModal = false" class="px-5 py-2.5 rounded-xl border-2 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-800 active:scale-[0.98] transition-all" :disabled="componentForm.processing">Batal</button>
+                <button @click="submitComponent" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 text-white text-sm font-semibold shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/40 hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-200 disabled:opacity-60" :disabled="componentForm.processing">
                     {{ componentForm.processing ? 'Menyimpan...' : (editingComponent ? 'Simpan' : 'Tambah') }}
                 </button>
             </template>

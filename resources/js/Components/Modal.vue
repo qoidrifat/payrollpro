@@ -46,6 +46,8 @@ const maxWidthClass = computed(() => ({
     lg: 'sm:max-w-lg',
     xl: 'sm:max-w-xl',
     '2xl': 'sm:max-w-2xl',
+    '3xl': 'sm:max-w-3xl',
+    '4xl': 'sm:max-w-4xl',
 }[props.maxWidth]));
 </script>
 
@@ -53,7 +55,7 @@ const maxWidthClass = computed(() => ({
     <Transition name="modal-overlay">
         <div
             v-show="show"
-            class="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm"
+            class="fixed inset-0 z-50 bg-black/40 dark:bg-black/60 backdrop-blur-sm"
             @click="close"
         />
     </Transition>
@@ -64,21 +66,26 @@ const maxWidthClass = computed(() => ({
             class="fixed inset-0 z-50 flex items-center justify-center p-4"
             @click.self="close"
         >
-            <div :class="['relative w-full bg-white dark:bg-gray-900 rounded-2xl shadow-xl max-h-[90vh] flex flex-col', maxWidthClass]">
-                <div v-if="title" class="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-800">
-                    <h3 class="text-lg font-semibold text-gray-900 dark:text-white">{{ title }}</h3>
+            <div :class="['relative w-full bg-white dark:bg-gray-900 rounded-2xl shadow-2xl max-h-[90vh] flex flex-col', maxWidthClass]">
+                <!-- Header -->
+                <div v-if="title" class="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-800">
+                    <h3 class="text-lg font-bold text-gray-900 dark:text-white tracking-tight">{{ title }}</h3>
                     <button
                         v-if="closeable"
-                        class="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                        class="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all duration-200 active:scale-90"
                         @click="close"
                     >
                         <XMarkIcon class="w-5 h-5" />
                     </button>
                 </div>
+
+                <!-- Body -->
                 <div class="flex-1 overflow-y-auto p-6">
                     <slot v-if="showSlot" />
                 </div>
-                <div v-if="$slots.footer && showSlot" class="px-6 py-4 border-t border-gray-200 dark:border-gray-800 flex items-center justify-end gap-3">
+
+                <!-- Footer -->
+                <div v-if="$slots.footer && showSlot" class="px-6 py-4 border-t border-gray-100 dark:border-gray-800 flex items-center justify-end gap-3">
                     <slot name="footer" />
                 </div>
             </div>

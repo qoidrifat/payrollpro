@@ -21,9 +21,9 @@ const form = useForm({
 
 const submit = () => {
     if (isEditing) {
-        form.put(`/attendances/${attendance.id}`);
+        form.put(route('attendances.update', attendance.id));
     } else {
-        form.post('/attendances');
+        form.post(route('attendances.store'));
     }
 };
 </script>
@@ -32,7 +32,7 @@ const submit = () => {
     <AuthenticatedLayout>
         <PageHeader :title="isEditing ? 'Ubah Absensi' : 'Catat Absensi'" :description="isEditing ? 'Perbarui catatan absensi.' : 'Catat absensi untuk karyawan.'">
             <template #actions>
-                <Link href="/attendances" class="btn-secondary">
+                <Link :href="route('attendances.index')" class="btn-secondary">
                     <ArrowLeftIcon class="w-5 h-5" />
                     Kembali
                 </Link>
@@ -94,7 +94,7 @@ const submit = () => {
                 <button type="submit" class="btn-primary" :disabled="form.processing">
                     {{ form.processing ? 'Menyimpan...' : (isEditing ? 'Simpan' : 'Catat Absensi') }}
                 </button>
-                <Link href="/attendances" class="btn-secondary">Batal</Link>
+                <Link :href="route('attendances.index')" class="btn-secondary">Batal</Link>
             </div>
         </form>
     </AuthenticatedLayout>

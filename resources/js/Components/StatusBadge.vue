@@ -19,27 +19,28 @@ const config = computed(() => {
 </script>
 
 <template>
-    <div :class="['flex items-center gap-2', size === 'lg' ? 'text-base' : 'text-sm']">
+    <div :class="['flex items-center gap-2.5', size === 'lg' ? 'text-base' : 'text-sm']">
         <span class="relative flex items-center justify-center">
             <span
                 v-if="config.pulse"
                 :class="[
                     'absolute inline-flex rounded-full opacity-75 animate-ping',
-                    size === 'lg' ? 'h-3 w-3' : 'h-2.5 w-2.5',
+                    size === 'lg' ? 'h-3.5 w-3.5' : 'h-3 w-3',
                     `bg-${config.color}-400`
                 ]"
             />
             <span
                 :class="[
-                    'relative inline-flex rounded-full',
-                    size === 'lg' ? 'h-3 w-3' : 'h-2.5 w-2.5',
+                    'relative inline-flex rounded-full ring-2 ring-white dark:ring-gray-900',
+                    size === 'lg' ? 'h-3.5 w-3.5' : 'h-3 w-3',
                     `bg-${config.color}-500`
                 ]"
             />
         </span>
         <span
             :class="[
-                'font-medium',
+                'font-semibold',
+                size === 'lg' ? 'text-sm' : 'text-xs',
                 `text-${config.color}-700 dark:text-${config.color}-400`
             ]"
         >

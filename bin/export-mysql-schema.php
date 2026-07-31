@@ -3,7 +3,7 @@
 /**
  * Export SQLite schema + seed data as MySQL-compatible SQL.
  *
- * Usage: php bin/export-mysql-schema.php > migrate.sql
+ * Usage: php bin/export-mysql-schema.php > database/migrate.sql
  *
  * This script reads the current SQLite database (after all migrations
  * have been applied) and generates a MySQL-compatible SQL dump that can

@@ -23,18 +23,13 @@ const confirmDelete = (employee) => {
 };
 
 const deleteEmployee = () => {
-    router.delete(`/employees/${employeeToDelete.value.id}`, {
+    router.delete(route('employees.destroy', employeeToDelete.value.id), {
         onSuccess: () => { showDeleteDialog.value = false; employeeToDelete.value = null; },
     });
 };
 
 const statusVariant = (status) => {
-    const map = {
-        permanent: 'success',
-        contract: 'info',
-        probation: 'warning',
-        intern: 'default',
-    };
+    const map = { permanent: 'success', contract: 'info', probation: 'warning', intern: 'default' };
     return map[status] || 'default';
 };
 
@@ -50,9 +45,9 @@ const columns = [
 
 <template>
     <AuthenticatedLayout>
-        <PageHeader title="Karyawan" description="Kelola anggota tim dan informasi mereka.">
+        <PageHeader title="Karyawan" description="Kelola anggota tim dan informasi mereka">
             <template #actions>
-                <Link v-if="canManageEmployees" href="/employees/create" class="btn-primary">
+                <Link v-if="canManageEmployees" :href="route('employees.create')" class="btn-primary">
                     <PlusIcon class="w-5 h-5" />
                     Tambah Karyawan
                 </Link>
@@ -70,39 +65,36 @@ const columns = [
             :per-page="employees.per_page"
             :filters="filters"
             base-route="/employees"
-            @row-click="(row) => router.get(`/employees/${row.id}`)"
+            @row-click="(row) => router.get(route('employees.show', row.id))"
         >
             <template #cell-full_name="{ row }">
                 <div class="flex items-center gap-3">
-                    <div class="w-9 h-9 rounded-full bg-primary-100 dark:bg-primary-900 flex items-center justify-center">
-                        <span class="text-xs font-semibold text-primary-700 dark:text-primary-300">
+                    <div class="w-9 h-9 rounded-full bg-gradient-to-br from-primary-500 to-purple-600 flex items-center justify-center shadow-sm ring-2 ring-white dark:ring-gray-900">
+                        <span class="text-xs font-bold text-white">
                             {{ row.first_name?.charAt(0) }}{{ row.last_name?.charAt(0) || '' }}
                         </span>
                     </div>
                     <div>
-                        <p class="font-medium text-gray-900 dark:text-white">{{ row.full_name }}</p>
+                        <p class="font-semibold text-gray-900 dark:text-white">{{ row.full_name }}</p>
                         <p class="text-xs text-gray-400">{{ row.email }}</p>
                     </div>
                 </div>
             </template>
             <template #cell-department="{ value }">
-                <span>{{ value || '-' }}</span>
+                <span class="text-gray-500 dark:text-gray-400">{{ value || '-' }}</span>
             </template>
             <template #cell-employment_status="{ value }">
                 <Badge :variant="statusVariant(value)">{{ value }}</Badge>
             </template>
             <template #cell-actions="{ row }">
                 <div class="flex items-center gap-1" @click.stop>
-                    <Link :href="`/employees/${row.id}`" class="p-2 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800">
+                    <Link :href="route('employees.show', row.id)" class="p-2 rounded-lg text-gray-400 hover:text-primary-600 dark:hover:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-950/50 transition-all">
                         <EyeIcon class="w-4 h-4" />
                     </Link>
-                    <Link :href="`/employees/${row.id}/edit`" class="p-2 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800">
+                    <Link :href="route('employees.edit', row.id)" class="p-2 rounded-lg text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/50 transition-all">
                         <PencilIcon class="w-4 h-4" />
                     </Link>
-                    <button
-                        class="p-2 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950"
-                        @click="confirmDelete(row)"
-                    >
+                    <button class="p-2 rounded-lg text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/50 transition-all" @click="confirmDelete(row)">
                         <TrashIcon class="w-4 h-4" />
                     </button>
                 </div>

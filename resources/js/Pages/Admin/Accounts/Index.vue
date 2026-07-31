@@ -66,7 +66,7 @@ const formatDate = (value) => {
 };
 
 const updateFilters = (extra = {}) => {
-    router.get('/admin/accounts', {
+    router.get(route('admin.accounts.index'), {
         ...filters.value,
         ...extra,
         page: 1,
@@ -78,7 +78,7 @@ const updateFilters = (extra = {}) => {
 };
 
 const clearFilters = () => {
-    router.get('/admin/accounts', {}, {
+    router.get(route('admin.accounts.index'), {}, {
         preserveState: true,
         preserveScroll: true,
         replace: true,
@@ -93,7 +93,7 @@ const openRoleModal = (account) => {
 };
 
 const submitRole = () => {
-    roleForm.put(`/admin/accounts/${selectedAccount.value.id}/role`, {
+    roleForm.put(route('admin.accounts.role.update', selectedAccount.value.id), {
         preserveScroll: true,
         onSuccess: () => showRoleModal.value = false,
     });
@@ -115,7 +115,7 @@ const availableEmployees = computed(() => {
 });
 
 const submitEmployee = () => {
-    employeeForm.put(`/admin/accounts/${selectedAccount.value.id}/employee`, {
+    employeeForm.put(route('admin.accounts.employee.update', selectedAccount.value.id), {
         preserveScroll: true,
         onSuccess: () => showEmployeeModal.value = false,
     });
@@ -129,7 +129,7 @@ const openPasswordModal = (account) => {
 };
 
 const submitPassword = () => {
-    passwordForm.put(`/admin/accounts/${selectedAccount.value.id}/password`, {
+    passwordForm.put(route('admin.accounts.password.update', selectedAccount.value.id), {
         preserveScroll: true,
         onSuccess: () => {
             passwordForm.reset();
@@ -151,7 +151,7 @@ const askSuspend = (account) => {
 const submitConfirmAction = () => {
     const action = confirmAction.value;
 
-    router.post(`/admin/accounts/${selectedAccount.value.id}/${action}`, {}, {
+    router.post(action === 'activate' ? route('admin.accounts.activate', selectedAccount.value.id) : route('admin.accounts.suspend', selectedAccount.value.id), {}, {
         preserveScroll: true,
         onSuccess: () => {
             confirmAction.value = null;
@@ -187,246 +187,291 @@ const confirmDialog = computed(() => {
         />
 
         <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4 mb-6">
-            <div class="glass-card p-5">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-sm text-gray-500 dark:text-gray-400">Pending Review</p>
-                        <p class="mt-1 text-2xl font-bold text-gray-900 dark:text-white">{{ stats.pending || 0 }}</p>
+            <div class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-amber-500 to-orange-600 p-6 text-white shadow-lg shadow-amber-500/20">
+                <div class="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/4" />
+                <div class="absolute bottom-0 left-0 w-24 h-24 bg-white/5 rounded-full translate-y-1/3 -translate-x-1/4" />
+                <div class="relative z-10">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-white/80">Pending Review</p>
+                            <p class="mt-2 text-3xl font-bold tracking-tight">{{ stats.pending || 0 }}</p>
+                        </div>
+                        <ExclamationTriangleIcon class="w-8 h-8 text-white/60" />
                     </div>
-                    <ExclamationTriangleIcon class="w-8 h-8 text-amber-500" />
                 </div>
             </div>
-            <div class="glass-card p-5">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-sm text-gray-500 dark:text-gray-400">Aktif</p>
-                        <p class="mt-1 text-2xl font-bold text-gray-900 dark:text-white">{{ stats.active || 0 }}</p>
+            <div class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 p-6 text-white shadow-lg shadow-emerald-500/20">
+                <div class="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/4" />
+                <div class="absolute bottom-0 left-0 w-24 h-24 bg-white/5 rounded-full translate-y-1/3 -translate-x-1/4" />
+                <div class="relative z-10">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-white/80">Aktif</p>
+                            <p class="mt-2 text-3xl font-bold tracking-tight">{{ stats.active || 0 }}</p>
+                        </div>
+                        <CheckCircleIcon class="w-8 h-8 text-white/60" />
                     </div>
-                    <CheckCircleIcon class="w-8 h-8 text-emerald-500" />
                 </div>
             </div>
-            <div class="glass-card p-5">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-sm text-gray-500 dark:text-gray-400">Belum Terhubung</p>
-                        <p class="mt-1 text-2xl font-bold text-gray-900 dark:text-white">{{ stats.unlinked || 0 }}</p>
+            <div class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 p-6 text-white shadow-lg shadow-blue-500/20">
+                <div class="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/4" />
+                <div class="absolute bottom-0 left-0 w-24 h-24 bg-white/5 rounded-full translate-y-1/3 -translate-x-1/4" />
+                <div class="relative z-10">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-white/80">Belum Terhubung</p>
+                            <p class="mt-2 text-3xl font-bold tracking-tight">{{ stats.unlinked || 0 }}</p>
+                        </div>
+                        <LinkIcon class="w-8 h-8 text-white/60" />
                     </div>
-                    <LinkIcon class="w-8 h-8 text-blue-500" />
                 </div>
             </div>
-            <div class="glass-card p-5">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <p class="text-sm text-gray-500 dark:text-gray-400">Suspended</p>
-                        <p class="mt-1 text-2xl font-bold text-gray-900 dark:text-white">{{ stats.suspended || 0 }}</p>
+            <div class="relative overflow-hidden rounded-2xl bg-gradient-to-br from-red-500 to-rose-600 p-6 text-white shadow-lg shadow-red-500/20">
+                <div class="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-1/2 translate-x-1/4" />
+                <div class="absolute bottom-0 left-0 w-24 h-24 bg-white/5 rounded-full translate-y-1/3 -translate-x-1/4" />
+                <div class="relative z-10">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-medium text-white/80">Suspended</p>
+                            <p class="mt-2 text-3xl font-bold tracking-tight">{{ stats.suspended || 0 }}</p>
+                        </div>
+                        <NoSymbolIcon class="w-8 h-8 text-white/60" />
                     </div>
-                    <NoSymbolIcon class="w-8 h-8 text-red-500" />
                 </div>
             </div>
         </div>
 
-        <DataTable
-            server-side
-            base-route="/admin/accounts"
-            :columns="columns"
-            :rows="accounts.data"
-            :filters="filters"
-            :total="accounts.total"
-            :current-page="accounts.current_page"
-            :last-page="accounts.last_page"
-            :per-page="accounts.per_page"
-            search-placeholder="Cari nama, email, jabatan, atau departemen..."
-        >
-            <template #toolbar>
-                <select
-                    class="form-input w-40"
-                    :value="filters.status || ''"
-                    @change="updateFilters({ status: $event.target.value || null })"
+        <div class="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-sm overflow-hidden">
+            <div class="flex items-center gap-3 px-6 py-5 border-b border-gray-100 dark:border-gray-800">
+                <div class="flex items-center justify-center w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white shadow-sm">
+                    <UserGroupIcon class="w-5 h-5" />
+                </div>
+                <div>
+                    <h3 class="text-base font-semibold text-gray-900 dark:text-white">Daftar Akun</h3>
+                    <p class="text-xs text-gray-500 dark:text-gray-400">{{ accounts.total || 0 }} total akun terdaftar</p>
+                </div>
+            </div>
+            <div class="p-6">
+                <DataTable
+                    server-side
+                    base-route="/admin/accounts"
+                    :columns="columns"
+                    :rows="accounts.data"
+                    :filters="filters"
+                    :total="accounts.total"
+                    :current-page="accounts.current_page"
+                    :last-page="accounts.last_page"
+                    :per-page="accounts.per_page"
+                    search-placeholder="Cari nama, email, jabatan, atau departemen..."
                 >
-                    <option value="">Semua status</option>
-                    <option value="pending">Pending</option>
-                    <option value="active">Aktif</option>
-                    <option value="suspended">Suspended</option>
-                </select>
-                <select
-                    class="form-input w-36"
-                    :value="filters.role || ''"
-                    @change="updateFilters({ role: $event.target.value || null })"
-                >
-                    <option value="">Semua role</option>
-                    <option value="HR">HR</option>
-                    <option value="Employee">Employee</option>
-                </select>
-                <select
-                    class="form-input w-44"
-                    :value="filters.link_status || ''"
-                    @change="updateFilters({ link_status: $event.target.value || null })"
-                >
-                    <option value="">Semua relasi</option>
-                    <option value="linked">Terhubung</option>
-                    <option value="unlinked">Belum terhubung</option>
-                </select>
-                <button class="btn-secondary" @click="clearFilters">Reset</button>
-            </template>
+                    <template #toolbar>
+                        <select
+                            class="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-1.5 text-xs text-gray-700 dark:text-gray-300 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 transition-all w-40"
+                            :value="filters.status || ''"
+                            @change="updateFilters({ status: $event.target.value || null })"
+                        >
+                            <option value="">Semua status</option>
+                            <option value="pending">Pending</option>
+                            <option value="active">Aktif</option>
+                            <option value="suspended">Suspended</option>
+                        </select>
+                        <select
+                            class="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-1.5 text-xs text-gray-700 dark:text-gray-300 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 transition-all w-36"
+                            :value="filters.role || ''"
+                            @change="updateFilters({ role: $event.target.value || null })"
+                        >
+                            <option value="">Semua role</option>
+                            <option value="HR">HR</option>
+                            <option value="Employee">Employee</option>
+                        </select>
+                        <select
+                            class="rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-3 py-1.5 text-xs text-gray-700 dark:text-gray-300 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 transition-all w-44"
+                            :value="filters.link_status || ''"
+                            @change="updateFilters({ link_status: $event.target.value || null })"
+                        >
+                            <option value="">Semua relasi</option>
+                            <option value="linked">Terhubung</option>
+                            <option value="unlinked">Belum terhubung</option>
+                        </select>
+                        <button class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border-2 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 text-xs font-semibold hover:bg-gray-50 dark:hover:bg-gray-800 hover:shadow-md active:scale-[0.98] transition-all duration-200" @click="clearFilters">Reset</button>
+                    </template>
 
-            <template #cell-user="{ row }">
-                <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-xl bg-primary-100 dark:bg-primary-950 flex items-center justify-center">
-                        <span class="text-sm font-semibold text-primary-700 dark:text-primary-300">
-                            {{ row.name?.charAt(0) || 'U' }}
-                        </span>
-                    </div>
-                    <div>
-                        <p class="font-semibold text-gray-900 dark:text-white">{{ row.name }}</p>
-                        <p class="text-xs text-gray-500 dark:text-gray-400">{{ row.email }}</p>
-                    </div>
-                </div>
-            </template>
+                    <template #cell-user="{ row }">
+                        <div class="flex items-center gap-3">
+                            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white flex items-center justify-center shadow-sm">
+                                <span class="text-sm font-semibold">{{ row.name?.charAt(0) || 'U' }}</span>
+                            </div>
+                            <div>
+                                <p class="font-semibold text-gray-900 dark:text-white">{{ row.name }}</p>
+                                <p class="text-xs text-gray-500 dark:text-gray-400">{{ row.email }}</p>
+                            </div>
+                        </div>
+                    </template>
 
-            <template #cell-role="{ value }">
-                <Badge :variant="roleVariant(value)">
-                    <span class="inline-flex items-center gap-1">
-                        <ShieldCheckIcon class="w-3.5 h-3.5" />
-                        {{ value }}
-                    </span>
-                </Badge>
-            </template>
+                    <template #cell-role="{ value }">
+                        <Badge :variant="roleVariant(value)">
+                            <span class="inline-flex items-center gap-1">
+                                <ShieldCheckIcon class="w-3.5 h-3.5" />
+                                {{ value }}
+                            </span>
+                        </Badge>
+                    </template>
 
-            <template #cell-account_status="{ value }">
-                <Badge :variant="statusMeta[value]?.variant || 'default'">
-                    {{ statusMeta[value]?.label || value }}
-                </Badge>
-            </template>
+                    <template #cell-account_status="{ value }">
+                        <Badge :variant="statusMeta[value]?.variant || 'default'">
+                            {{ statusMeta[value]?.label || value }}
+                        </Badge>
+                    </template>
 
-            <template #cell-employee="{ row }">
-                <div v-if="row.employee" class="min-w-56">
-                    <p class="font-medium text-gray-900 dark:text-white">{{ row.employee.name }}</p>
-                    <p class="text-xs text-gray-500 dark:text-gray-400">
-                        {{ row.employee.position }} · {{ row.employee.department || '-' }}
-                    </p>
-                </div>
-                <div v-else class="inline-flex items-center gap-2 text-sm text-amber-700 dark:text-amber-300">
-                    <ExclamationTriangleIcon class="w-4 h-4" />
-                    Belum terhubung
-                </div>
-            </template>
+                    <template #cell-employee="{ row }">
+                        <div v-if="row.employee" class="min-w-56">
+                            <p class="font-medium text-gray-900 dark:text-white">{{ row.employee.name }}</p>
+                            <p class="text-xs text-gray-500 dark:text-gray-400">
+                                {{ row.employee.position }} · {{ row.employee.department || '-' }}
+                            </p>
+                        </div>
+                        <div v-else class="inline-flex items-center gap-2 text-sm text-amber-600 dark:text-amber-400">
+                            <ExclamationTriangleIcon class="w-4 h-4" />
+                            Belum terhubung
+                        </div>
+                    </template>
 
-            <template #cell-last_login_at="{ value }">
-                {{ formatDate(value) }}
-            </template>
+                    <template #cell-last_login_at="{ value }">
+                        {{ formatDate(value) }}
+                    </template>
 
-            <template #cell-actions="{ row }">
-                <div class="flex items-center justify-end gap-1" @click.stop>
-                    <button
-                        class="p-2 rounded-lg text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950"
-                        title="Aktifkan akun"
-                        @click="askActivate(row)"
-                    >
-                        <CheckCircleIcon class="w-4 h-4" />
-                    </button>
-                    <button
-                        class="p-2 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950"
-                        title="Nonaktifkan akun"
-                        @click="askSuspend(row)"
-                    >
-                        <NoSymbolIcon class="w-4 h-4" />
-                    </button>
-                    <button
-                        class="p-2 rounded-lg text-gray-400 hover:text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-950"
-                        title="Ubah role"
-                        @click="openRoleModal(row)"
-                    >
-                        <ShieldCheckIcon class="w-4 h-4" />
-                    </button>
-                    <button
-                        class="p-2 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950"
-                        title="Hubungkan data karyawan"
-                        @click="openEmployeeModal(row)"
-                    >
-                        <LinkIcon class="w-4 h-4" />
-                    </button>
-                    <button
-                        class="p-2 rounded-lg text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800"
-                        title="Reset password"
-                        @click="openPasswordModal(row)"
-                    >
-                        <LockClosedIcon class="w-4 h-4" />
-                    </button>
-                </div>
-            </template>
-        </DataTable>
+                    <template #cell-actions="{ row }">
+                        <div class="flex items-center justify-end gap-1" @click.stop>
+                            <button
+                                class="p-2 rounded-lg text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950 transition-all"
+                                title="Aktifkan akun"
+                                @click="askActivate(row)"
+                            >
+                                <CheckCircleIcon class="w-4 h-4" />
+                            </button>
+                            <button
+                                class="p-2 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950 transition-all"
+                                title="Nonaktifkan akun"
+                                @click="askSuspend(row)"
+                            >
+                                <NoSymbolIcon class="w-4 h-4" />
+                            </button>
+                            <button
+                                class="p-2 rounded-lg text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-950 transition-all"
+                                title="Ubah role"
+                                @click="openRoleModal(row)"
+                            >
+                                <ShieldCheckIcon class="w-4 h-4" />
+                            </button>
+                            <button
+                                class="p-2 rounded-lg text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-950 transition-all"
+                                title="Hubungkan data karyawan"
+                                @click="openEmployeeModal(row)"
+                            >
+                                <LinkIcon class="w-4 h-4" />
+                            </button>
+                            <button
+                                class="p-2 rounded-lg text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 transition-all"
+                                title="Reset password"
+                                @click="openPasswordModal(row)"
+                            >
+                                <LockClosedIcon class="w-4 h-4" />
+                            </button>
+                        </div>
+                    </template>
+                </DataTable>
+            </div>
+        </div>
 
+        <!-- Role Modal -->
         <Modal :show="showRoleModal" title="Ubah Role Akun" @close="showRoleModal = false">
             <div class="space-y-4">
-                <div>
-                    <p class="text-sm font-semibold text-gray-900 dark:text-white">{{ selectedAccount?.name }}</p>
-                    <p class="text-sm text-gray-500 dark:text-gray-400">{{ selectedAccount?.email }}</p>
+                <div class="flex items-center gap-3 p-4 rounded-xl bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white flex items-center justify-center">
+                        <span class="text-sm font-semibold">{{ selectedAccount?.name?.charAt(0) }}</span>
+                    </div>
+                    <div>
+                        <p class="text-sm font-semibold text-gray-900 dark:text-white">{{ selectedAccount?.name }}</p>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">{{ selectedAccount?.email }}</p>
+                    </div>
                 </div>
                 <div>
-                    <label class="form-label">Role</label>
-                    <select v-model="roleForm.role" class="form-input">
+                    <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Role</label>
+                    <select v-model="roleForm.role" class="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-4 py-2.5 text-sm text-gray-900 dark:text-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 transition-all">
                         <option value="Employee">Employee</option>
                         <option value="HR">HR</option>
                     </select>
-                    <p v-if="roleForm.errors.role" class="form-error">{{ roleForm.errors.role }}</p>
+                    <p v-if="roleForm.errors.role" class="mt-1 text-sm text-red-600">{{ roleForm.errors.role }}</p>
                 </div>
             </div>
             <template #footer>
-                <button class="btn-secondary" @click="showRoleModal = false">Batal</button>
-                <button class="btn-primary" :disabled="roleForm.processing" @click="submitRole">
+                <button class="px-5 py-2.5 rounded-xl border-2 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-800 active:scale-[0.98] transition-all" @click="showRoleModal = false">Batal</button>
+                <button class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 text-white text-sm font-semibold shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/40 hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-200 disabled:opacity-60" :disabled="roleForm.processing" @click="submitRole">
                     {{ roleForm.processing ? 'Menyimpan...' : 'Simpan Role' }}
                 </button>
             </template>
         </Modal>
 
+        <!-- Employee Modal -->
         <Modal :show="showEmployeeModal" title="Hubungkan Data Karyawan" max-width="xl" @close="showEmployeeModal = false">
             <div class="space-y-4">
-                <div>
-                    <p class="text-sm font-semibold text-gray-900 dark:text-white">{{ selectedAccount?.name }}</p>
-                    <p class="text-sm text-gray-500 dark:text-gray-400">{{ selectedAccount?.email }}</p>
+                <div class="flex items-center gap-3 p-4 rounded-xl bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white flex items-center justify-center">
+                        <span class="text-sm font-semibold">{{ selectedAccount?.name?.charAt(0) }}</span>
+                    </div>
+                    <div>
+                        <p class="text-sm font-semibold text-gray-900 dark:text-white">{{ selectedAccount?.name }}</p>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">{{ selectedAccount?.email }}</p>
+                    </div>
                 </div>
                 <div>
-                    <label class="form-label">Data karyawan</label>
-                    <select v-model="employeeForm.employee_id" class="form-input">
+                    <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Data Karyawan</label>
+                    <select v-model="employeeForm.employee_id" class="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-4 py-2.5 text-sm text-gray-900 dark:text-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 transition-all">
                         <option value="">Tidak dihubungkan</option>
                         <option v-for="employee in availableEmployees" :key="employee.id" :value="employee.id">
                             {{ employee.name }} - {{ employee.position }} / {{ employee.department || '-' }}
                         </option>
                     </select>
-                    <p v-if="employeeForm.errors.employee_id" class="form-error">{{ employeeForm.errors.employee_id }}</p>
+                    <p v-if="employeeForm.errors.employee_id" class="mt-1 text-sm text-red-600">{{ employeeForm.errors.employee_id }}</p>
                     <p class="mt-2 text-xs text-gray-500 dark:text-gray-400">
                         Akun pending boleh login, tetapi tidak dianggap karyawan payroll aktif sampai data karyawan terhubung dan akun diaktifkan.
                     </p>
                 </div>
             </div>
             <template #footer>
-                <button class="btn-secondary" @click="showEmployeeModal = false">Batal</button>
-                <button class="btn-primary" :disabled="employeeForm.processing" @click="submitEmployee">
+                <button class="px-5 py-2.5 rounded-xl border-2 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-800 active:scale-[0.98] transition-all" @click="showEmployeeModal = false">Batal</button>
+                <button class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 text-white text-sm font-semibold shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/40 hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-200 disabled:opacity-60" :disabled="employeeForm.processing" @click="submitEmployee">
                     {{ employeeForm.processing ? 'Menyimpan...' : 'Simpan Relasi' }}
                 </button>
             </template>
         </Modal>
 
+        <!-- Password Modal -->
         <Modal :show="showPasswordModal" title="Reset Password" @close="showPasswordModal = false">
             <div class="space-y-4">
-                <div>
-                    <p class="text-sm font-semibold text-gray-900 dark:text-white">{{ selectedAccount?.name }}</p>
-                    <p class="text-sm text-gray-500 dark:text-gray-400">{{ selectedAccount?.email }}</p>
+                <div class="flex items-center gap-3 p-4 rounded-xl bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white flex items-center justify-center">
+                        <span class="text-sm font-semibold">{{ selectedAccount?.name?.charAt(0) }}</span>
+                    </div>
+                    <div>
+                        <p class="text-sm font-semibold text-gray-900 dark:text-white">{{ selectedAccount?.name }}</p>
+                        <p class="text-xs text-gray-500 dark:text-gray-400">{{ selectedAccount?.email }}</p>
+                    </div>
                 </div>
                 <div>
-                    <label class="form-label">Password baru</label>
-                    <input v-model="passwordForm.password" type="password" class="form-input" autocomplete="new-password" />
-                    <p v-if="passwordForm.errors.password" class="form-error">{{ passwordForm.errors.password }}</p>
+                    <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Password baru</label>
+                    <input v-model="passwordForm.password" type="password" class="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-4 py-2.5 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 transition-all" autocomplete="new-password" />
+                    <p v-if="passwordForm.errors.password" class="mt-1 text-sm text-red-600">{{ passwordForm.errors.password }}</p>
                 </div>
                 <div>
-                    <label class="form-label">Konfirmasi password</label>
-                    <input v-model="passwordForm.password_confirmation" type="password" class="form-input" autocomplete="new-password" />
-                    <p v-if="passwordForm.errors.password_confirmation" class="form-error">{{ passwordForm.errors.password_confirmation }}</p>
+                    <label class="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Konfirmasi password</label>
+                    <input v-model="passwordForm.password_confirmation" type="password" class="w-full rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-4 py-2.5 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/20 transition-all" autocomplete="new-password" />
+                    <p v-if="passwordForm.errors.password_confirmation" class="mt-1 text-sm text-red-600">{{ passwordForm.errors.password_confirmation }}</p>
                 </div>
             </div>
             <template #footer>
-                <button class="btn-secondary" @click="showPasswordModal = false">Batal</button>
-                <button class="btn-primary" :disabled="passwordForm.processing" @click="submitPassword">
+                <button class="px-5 py-2.5 rounded-xl border-2 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-800 active:scale-[0.98] transition-all" @click="showPasswordModal = false">Batal</button>
+                <button class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 text-white text-sm font-semibold shadow-lg shadow-indigo-500/25 hover:shadow-indigo-500/40 hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-200 disabled:opacity-60" :disabled="passwordForm.processing" @click="submitPassword">
                     {{ passwordForm.processing ? 'Mereset...' : 'Reset Password' }}
                 </button>
             </template>

@@ -1,0 +1,142 @@
+═══════════════════════════════════════════════════════════════════
+  PayrollPro — Narasi Demo (Bahasa Indonesia)
+  Durasi: ~3 menit 20 detik
+═══════════════════════════════════════════════════════════════════
+
+═══════════════════════════════════════════════════════════════════
+SCENE 1 — PEMBUKAAN (0:00 - 0:12)
+Halaman Login
+═══════════════════════════════════════════════════════════════════
+
+Selamat datang di PayrollPro, sebuah sistem penggajian modern
+yang dirancang untuk membantu perusahaan mengelola proses
+payroll secara lebih cepat, akurat, dan efisien.
+
+═══════════════════════════════════════════════════════════════════
+SCENE 2 — LOGIN (0:12 - 0:22)
+Login ke Dashboard
+═══════════════════════════════════════════════════════════════════
+
+Mari kita mulai dengan menjelajahi fitur-fitur unggulan yang
+kami sediakan. Silakan masuk menggunakan akun admin untuk
+mengakses seluruh fungsi manajemen penggajian.
+
+═══════════════════════════════════════════════════════════════════
+SCENE 3 — DASHBOARD (0:22 - 0:45)
+Overview Dashboard
+═══════════════════════════════════════════════════════════════════
+
+Ini adalah halaman Dashboard. Di sini, Anda dapat melihat
+ringkasan operasional perusahaan secara real-time. Total
+karyawan aktif, jumlah kehadiran hari ini, total penggajian
+bulan berjalan, serta pengajuan cuti yang menunggu persetujuan,
+semuanya tersaji dalam satu tampilan yang informatif.
+
+Anda juga dapat mengakses Aksi Cepat untuk memproses penggajian,
+menambahkan karyawan baru, atau melihat laporan secara langsung
+dari halaman ini.
+
+═══════════════════════════════════════════════════════════════════
+SCENE 4 — MANAJEMEN KARYAWAN (0:45 - 1:05)
+Daftar & Detail Karyawan
+═══════════════════════════════════════════════════════════════════
+
+Selanjutnya, mari kita lihat modul Manajemen Karyawan.
+Semua data karyawan terpusat dalam satu tabel yang rapi dan
+mudah dicari. Anda dapat melihat informasi penting seperti NIK,
+jabatan, departemen, dan status kepegawaian.
+
+Ketika kita memilih salah satu karyawan, kita bisa melihat
+detail lengkapnya: data pribadi, riwayat kepegawaian, gaji
+pokok, informasi bank, serta nomor BPJS Kesehatan dan
+BPJS Ketenagakerjaan. Semua informasi tersedia dengan rapi
+dan terstruktur.
+
+═══════════════════════════════════════════════════════════════════
+SCENE 5 — ABSENSI (1:05 - 1:25)
+Modul Absensi
+═══════════════════════════════════════════════════════════════════
+
+Modul Absensi mencatat kehadiran karyawan secara lengkap.
+Setiap status kehadiran — hadir, terlambat, setengah hari,
+sakit, cuti, atau tidak hadir — tercatat dengan jelas beserta
+jam masuk dan jam pulang.
+
+Fitur ini didukung oleh sistem real-time yang memungkinkan
+Anda memantau kehadiran secara langsung. Data absensi ini
+terintegrasi langsung dengan perhitungan penggajian, sehingga
+setiap potongan absensi dapat dihitung secara otomatis.
+
+═══════════════════════════════════════════════════════════════════
+SCENE 6 — PENGGAJIAN (1:25 - 1:50)
+Modul Payroll
+═══════════════════════════════════════════════════════════════════
+
+Sekarang kita masuk ke modul Penggajian. Di sini, Anda dapat
+membuat dan mengelola proses penggajian untuk setiap periode.
+Setiap item penggajian menampilkan rincian lengkap: gaji kotor,
+total potongan, dan gaji bersih yang diterima karyawan.
+
+PayrollPro menghitung secara otomatis seluruh komponen
+penggajian — mulai dari gaji pokok, tunjangan, bonus, lembur,
+hingga potongan BPJS Kesehatan, BPJS Ketenagakerjaan, dan
+PPh 21 dengan skema tarif efektif rata-rata terbaru.
+
+═══════════════════════════════════════════════════════════════════
+SCENE 7 — SLIP GAJI (1:50 - 2:10)
+Detail Potongan & Slip Gaji
+═══════════════════════════════════════════════════════════════════
+
+Mari kita lihat rincian potongan untuk setiap karyawan.
+Setiap komponen dipaparkan secara transparan sehingga
+karyawan dapat memahami dengan jelas berapa gaji yang
+diterima dan apa saja yang menjadi potongan.
+
+Setelah penggajian disetujui, PayrollPro secara otomatis
+menghasilkan slip gaji dalam format PDF profesional yang siap
+dibagikan kepada seluruh karyawan melalui portal self-service
+mereka.
+
+═══════════════════════════════════════════════════════════════════
+SCENE 8 — LAPORAN (2:10 - 2:35)
+Laporan Penggajian & Absensi
+═══════════════════════════════════════════════════════════════════
+
+Modul Laporan menyajikan data penggajian dan kehadiran dalam
+format yang informatif. Anda dapat melihat ringkasan total
+gaji kotor, gaji bersih, dan total PPh 21 yang telah dilaporkan.
+
+Laporan dapat difilter berdasarkan periode tertentu, sehingga
+Anda dengan mudah menganalisis tren penggajian dan kehadiran
+dari waktu ke waktu. Data dapat diekspor untuk kebutuhan
+pelaporan manajemen dan akuntansi.
+
+═══════════════════════════════════════════════════════════════════
+SCENE 9 — PENGATURAN (2:35 - 2:52)
+Halaman Settings
+═══════════════════════════════════════════════════════════════════
+
+Halaman Pengaturan memberikan Anda kendali penuh atas
+konfigurasi sistem. Mulai dari profil perusahaan, konfigurasi
+penggajian, tarif BPJS, skema PPh 21, hingga pengaturan peran
+dan izin akses — semuanya dapat disesuaikan dengan kebijakan
+perusahaan Anda.
+
+PayrollPro dirancang untuk fleksibel dan dapat beradaptasi
+dengan kebutuhan unik setiap organisasi.
+
+═══════════════════════════════════════════════════════════════════
+SCENE 10 — PENUTUP (2:52 - 3:15)
+Kembali ke Dashboard
+═══════════════════════════════════════════════════════════════════
+
+Sekian demonstrasi singkat dari PayrollPro. Dengan antarmuka
+yang modern, perhitungan yang akurat, dan fitur yang lengkap,
+PayrollPro adalah solusi penggajian yang tepat untuk perusahaan
+Anda.
+
+Kami mengundang Anda untuk mencoba sendiri dan merasakan
+kemudahan dalam mengelola penggajian perusahaan.
+
+Terima kasih telah menonton demonstrasi PayrollPro.
+═══════════════════════════════════════════════════════════════════

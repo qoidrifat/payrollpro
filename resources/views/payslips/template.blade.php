@@ -624,8 +624,26 @@
                     @endif
 
                     @if($item->bonuses_total > 0)
+                        @php
+                            // Name the bonus after its salary component(s) effective in
+                            // this payroll period, so THR/one-off pay is self-documenting.
+                            $bonusLabel = 'Bonus';
+                            $bonusNames = \App\Models\SalaryComponent::where('employee_id', $item->employee_id)
+                                ->where('type', 'bonus')
+                                ->where('is_active', true)
+                                ->where(function ($q) use ($item) {
+                                    $q->whereNull('effective_from')->orWhereDate('effective_from', '<=', $item->payroll->period_end);
+                                })
+                                ->where(function ($q) use ($item) {
+                                    $q->whereNull('effective_until')->orWhereDate('effective_until', '>=', $item->payroll->period_start);
+                                })
+                                ->pluck('name')->all();
+                            if (!empty($bonusNames)) {
+                                $bonusLabel = implode(' + ', $bonusNames);
+                            }
+                        @endphp
                         <tr>
-                            <td>Bonus</td>
+                            <td>{{ $bonusLabel }}</td>
                             <td class="amount">{{ number_format($item->bonuses_total, 0, ',', '.') }}</td>
                         </tr>
                     @endif
@@ -680,10 +698,33 @@
                         <td class="amount text-red">{{ number_format($item->pph21, 0, ',', '.') }}</td>
                     </tr>
 
-                    @if($item->deductions_total > 0)
+                    @php
+                        $calc = $item->calculation_details ?? [];
+                        $att = $calc['attendance_deduction'] ?? null;
+                        $attTotal = (float) ($att['total'] ?? 0);
+                        // Component (manual) deductions only. Backward-compat: if no
+                        // breakdown was stored, treat the whole deductions_total as "lain-lain".
+                        $componentDed = $att !== null
+                            ? (float) ($calc['component_deductions'] ?? 0)
+                            : (float) $item->deductions_total;
+                    @endphp
+
+                    @if($componentDed > 0)
                         <tr>
                             <td>Potongan Lain-lain</td>
-                            <td class="amount">{{ number_format($item->deductions_total, 0, ',', '.') }}</td>
+                            <td class="amount">{{ number_format($componentDed, 0, ',', '.') }}</td>
+                        </tr>
+                    @endif
+
+                    @if($attTotal > 0)
+                        <tr>
+                            <td>
+                                Potongan Ketidakhadiran
+                                @if(($att['absent']['count'] ?? 0) > 0)<br><small>&bull; Absen {{ $att['absent']['count'] }} hari &times; {{ number_format($att['absent']['rate'], 0, ',', '.') }}</small>@endif
+                                @if(($att['late']['count'] ?? 0) > 0)<br><small>&bull; Terlambat {{ $att['late']['count'] }}x &times; {{ number_format($att['late']['rate'], 0, ',', '.') }}</small>@endif
+                                @if(($att['half_day']['count'] ?? 0) > 0)<br><small>&bull; Setengah hari {{ $att['half_day']['count'] }} &times; {{ number_format($att['half_day']['rate'], 0, ',', '.') }}</small>@endif
+                            </td>
+                            <td class="amount">{{ number_format($attTotal, 0, ',', '.') }}</td>
                         </tr>
                     @endif
 

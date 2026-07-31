@@ -15,7 +15,7 @@ export default {
     theme: {
         extend: {
             fontFamily: {
-                sans: ['Inter', ...defaultTheme.fontFamily.sans],
+                sans: ['"Plus Jakarta Sans"', ...defaultTheme.fontFamily.sans],
                 display: ['"Plus Jakarta Sans"', ...defaultTheme.fontFamily.sans],
                 mono: ['"JetBrains Mono"', ...defaultTheme.fontFamily.mono],
             },
@@ -33,6 +33,14 @@ export default {
                     900: '#312e81',
                     950: '#1e1b4b',
                 },
+                surface: {
+                    DEFAULT: '#ffffff',
+                    dark: '#0f172a',
+                    50: '#f8fafc',
+                    100: '#f1f5f9',
+                    200: '#e2e8f0',
+                    300: '#cbd5e1',
+                },
             },
             borderRadius: {
                 '2xl': '1rem',
@@ -40,34 +48,74 @@ export default {
                 '4xl': '1.5rem',
             },
             boxShadow: {
-                'glass': '0 8px 32px rgba(0, 0, 0, 0.08)',
-                'glass-lg': '0 16px 48px rgba(0, 0, 0, 0.12)',
-                'card': '0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04)',
-                'card-hover': '0 10px 40px rgba(0, 0, 0, 0.1)',
+                'glass': '0 8px 32px rgba(0, 0, 0, 0.06)',
+                'glass-lg': '0 16px 48px rgba(0, 0, 0, 0.1)',
+                'card': '0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02)',
+                'card-hover': '0 10px 40px rgba(0, 0, 0, 0.08)',
+                'premium': '0 4px 24px rgba(99, 102, 241, 0.15), 0 1px 4px rgba(99, 102, 241, 0.06)',
+                'premium-lg': '0 8px 40px rgba(99, 102, 241, 0.2), 0 2px 8px rgba(99, 102, 241, 0.08)',
+                'inner-glow': 'inset 0 1px 0 rgba(255, 255, 255, 0.5)',
+                'inner-glow-dark': 'inset 0 1px 0 rgba(255, 255, 255, 0.06)',
             },
             animation: {
                 'fade-in': 'fadeIn 0.5s ease-out',
+                'fade-in-up': 'fadeInUp 0.5s ease-out',
                 'slide-up': 'slideUp 0.3s ease-out',
                 'slide-down': 'slideDown 0.3s ease-out',
                 'scale-in': 'scaleIn 0.2s ease-out',
+                'shimmer': 'shimmer 2s ease-in-out infinite',
+                'float': 'float 3s ease-in-out infinite',
+                'pulse-subtle': 'pulseSubtle 2s ease-in-out infinite',
+                'spin-slow': 'spin 3s linear infinite',
+                'bounce-sm': 'bounceSm 1s ease-in-out infinite',
             },
             keyframes: {
                 fadeIn: {
                     '0%': { opacity: '0' },
                     '100%': { opacity: '1' },
                 },
+                fadeInUp: {
+                    '0%': { opacity: '0', transform: 'translateY(12px)' },
+                    '100%': { opacity: '1', transform: 'translateY(0)' },
+                },
                 slideUp: {
-                    '0%': { opacity: '0', transform: 'translateY(10px)' },
+                    '0%': { opacity: '0', transform: 'translateY(8px)' },
                     '100%': { opacity: '1', transform: 'translateY(0)' },
                 },
                 slideDown: {
-                    '0%': { opacity: '0', transform: 'translateY(-10px)' },
+                    '0%': { opacity: '0', transform: 'translateY(-8px)' },
                     '100%': { opacity: '1', transform: 'translateY(0)' },
                 },
                 scaleIn: {
                     '0%': { opacity: '0', transform: 'scale(0.95)' },
                     '100%': { opacity: '1', transform: 'scale(1)' },
                 },
+                shimmer: {
+                    '0%': { backgroundPosition: '-200% 0' },
+                    '100%': { backgroundPosition: '200% 0' },
+                },
+                float: {
+                    '0%, 100%': { transform: 'translateY(0)' },
+                    '50%': { transform: 'translateY(-6px)' },
+                },
+                pulseSubtle: {
+                    '0%, 100%': { opacity: '1' },
+                    '50%': { opacity: '0.7' },
+                },
+                bounceSm: {
+                    '0%, 100%': { transform: 'translateY(0)' },
+                    '50%': { transform: 'translateY(-3px)' },
+                },
+            },
+            spacing: {
+                '4.5': '1.125rem',
+                '5.5': '1.375rem',
+            },
+            ringWidth: {
+                '3': '3px',
+            },
+            backgroundSize: {
+                '200%': '200% 100%',
             },
         },
     },

@@ -49,4 +49,30 @@ return [
     'manual_request' => [
         'max_backfill_days' => (int) env('ATTENDANCE_MANUAL_MAX_BACKFILL_DAYS', 30),
     ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Attendance-based Payroll Deductions
+    |--------------------------------------------------------------------------
+    |
+    | Automatic salary deductions computed from a payroll period's attendance.
+    | Only unexcused statuses are charged:
+    |   - absent   : tanpa keterangan            -> per-day rate
+    |   - late     : terlambat (butuh bukti)     -> per-occurrence rate
+    |   - half_day : setengah hari               -> per-day rate (½ absen)
+    | Official leave is exempt:
+    |   - sick / leave (izin resmi) & present    -> Rp0
+    | Rates are in whole rupiah and overridable via env.
+    |
+    */
+    'payroll_deduction' => [
+        'enabled' => (bool) env('ATTENDANCE_DEDUCTION_ENABLED', true),
+        'rates' => [
+            'absent'   => (int) env('ATTENDANCE_DEDUCTION_ABSENT', 50000),
+            'late'     => (int) env('ATTENDANCE_DEDUCTION_LATE', 25000),
+            'half_day' => (int) env('ATTENDANCE_DEDUCTION_HALF_DAY', 25000),
+        ],
+        // Statuses explicitly exempt from deduction (documented for clarity).
+        'exempt' => ['present', 'sick', 'leave'],
+    ],
 ];

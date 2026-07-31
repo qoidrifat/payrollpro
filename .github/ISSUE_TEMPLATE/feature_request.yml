@@ -1,0 +1,44 @@
+name: ✨ Feature Request
+description: Suggest a new feature or improvement for PayrollPro
+title: "[Feature] "
+labels: [enhancement]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for suggesting a feature! Please fill out the details below.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem Statement
+      description: What problem are you trying to solve?
+      placeholder: As an HR admin, I need to ...
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed Solution
+      description: Describe the behaviour you'd like to see.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: Any alternative approaches you've considered?
+    validations:
+      required: false
+  - type: textarea
+    id: scope
+    attributes:
+      label: Impacted Areas
+      description: Which modules are affected? (payroll, attendance, reports, portal, etc.)
+    validations:
+      required: false
+  - type: checkboxes
+    id: contribution
+    attributes:
+      label: Contribution
+      options:
+        - label: I'm willing to implement this feature in a pull request

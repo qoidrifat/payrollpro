@@ -4,6 +4,7 @@ namespace Tests;
 
 use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
+use Illuminate\Routing\Middleware\ThrottleRequests;
 
 abstract class TestCase extends BaseTestCase
 {
@@ -15,6 +16,13 @@ abstract class TestCase extends BaseTestCase
         // (not VerifyCsrfToken as in earlier versions). Bypass it so
         // POST/PATCH/DELETE requests in feature tests don't get 419 errors.
         $this->withoutMiddleware(ValidateCsrfToken::class);
+
+        // Disable rate limiting in tests. Auth routes use `throttle:6,1`,
+        // and the in-process array cache lets those counters accumulate
+        // across the whole suite — producing order-dependent 429s that made
+        // RegistrationTest / PasswordResetTest flaky on full runs. No test
+        // asserts on throttling, so removing the middleware is safe.
+        $this->withoutMiddleware(ThrottleRequests::class);
     }
 
     /**

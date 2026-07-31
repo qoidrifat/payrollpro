@@ -107,7 +107,7 @@ const timeString = computed(() =>
         hour: '2-digit',
         minute: '2-digit',
         timeZone: 'Asia/Jakarta',
-    }).format(now.value).replace(/\./g, ':')
+    }).format(now.value).replace(/\\./g, ':')
 )
 
 const wibTimeString = computed(() =>
@@ -117,7 +117,7 @@ const wibTimeString = computed(() =>
         second: '2-digit',
         hour12: false,
         timeZone: 'Asia/Jakarta',
-    }).format(now.value).replace(/\./g, ':')
+    }).format(now.value).replace(/\\./g, ':')
 )
 
 const dateString = computed(() =>
@@ -306,9 +306,10 @@ onUnmounted(() => {
                 isEmployeeMode ? 'flex max-w-xl flex-col justify-center space-y-5 lg:h-[calc(100vh-8.75rem)] lg:max-w-5xl lg:space-y-3 lg:overflow-hidden' : 'max-w-7xl space-y-6',
             ]"
         >
+            <!-- Top Section -->
             <section
                 :class="[
-                    'rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900',
+                    'rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-sm',
                     isEmployeeMode ? 'p-5 sm:p-6 lg:hidden' : 'p-5',
                 ]"
             >
@@ -319,7 +320,7 @@ onUnmounted(() => {
                     ]"
                 >
                     <div :class="['flex gap-4', isEmployeeMode ? 'flex-col items-center lg:flex-row' : 'items-center']">
-                        <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-gray-950 text-white shadow-sm dark:bg-white dark:text-gray-950 lg:h-10 lg:w-10">
+                        <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white shadow-sm lg:h-10 lg:w-10">
                             <QrCodeIcon class="h-6 w-6 lg:h-5 lg:w-5" />
                         </div>
                         <div>
@@ -336,11 +337,11 @@ onUnmounted(() => {
                     </div>
 
                     <div :class="['grid grid-cols-2 gap-3', isEmployeeMode ? 'w-full lg:w-auto lg:min-w-72' : 'sm:flex sm:items-center']">
-                        <div class="rounded-xl border border-gray-200 px-4 py-3 dark:border-gray-800 lg:px-3 lg:py-2">
+                        <div class="rounded-xl border border-gray-200 dark:border-gray-800 px-4 py-3 lg:px-3 lg:py-2 bg-gray-50/50 dark:bg-gray-800/30">
                             <p class="text-xs text-gray-400">Waktu</p>
                             <p class="mt-1 text-lg font-semibold tabular-nums text-gray-950 dark:text-white lg:text-base">{{ timeString }}</p>
                         </div>
-                        <div class="rounded-xl border border-gray-200 px-4 py-3 dark:border-gray-800 lg:px-3 lg:py-2">
+                        <div class="rounded-xl border border-gray-200 dark:border-gray-800 px-4 py-3 lg:px-3 lg:py-2 bg-gray-50/50 dark:bg-gray-800/30">
                             <p class="text-xs text-gray-400">{{ isOperationalHours ? 'QR refresh' : 'Jam operasional' }}</p>
                             <p class="mt-1 text-lg font-semibold tabular-nums text-gray-950 dark:text-white lg:text-base">
                                 {{ isOperationalHours ? expiryLabel : operationalHoursLabel }}
@@ -350,26 +351,30 @@ onUnmounted(() => {
                 </div>
             </section>
 
+            <!-- Main Grid -->
             <section
                 :class="[
                     'grid gap-6',
                     isEmployeeMode ? 'justify-items-center' : 'lg:grid-cols-[360px_minmax(0,1fr)]',
                 ]"
             >
+                <!-- Sidebar - Employee List (Admin only) -->
                 <aside
                     v-if="mode === 'admin'"
-                    class="rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900"
+                    class="rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-sm overflow-hidden"
                 >
-                    <div class="border-b border-gray-100 p-4 dark:border-gray-800">
-                        <div class="flex items-center justify-between gap-3">
+                    <div class="border-b border-gray-100 dark:border-gray-800 p-4">
+                        <div class="flex items-center justify-between gap-3 mb-4">
                             <div>
                                 <h2 class="text-sm font-semibold text-gray-950 dark:text-white">Daftar Karyawan</h2>
-                                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">{{ employeeOptions.length }} karyawan aktif</p>
+                                <p class="mt-0.5 text-xs text-gray-500 dark:text-gray-400">{{ employeeOptions.length }} karyawan aktif</p>
                             </div>
-                            <UsersIcon class="h-5 w-5 text-gray-400" />
+                            <div class="flex items-center justify-center w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 text-white shadow-sm">
+                                <UsersIcon class="w-4 h-4" />
+                            </div>
                         </div>
 
-                        <label class="mt-4 flex items-center gap-2 rounded-xl border border-gray-200 bg-gray-50 px-3 py-2.5 dark:border-gray-800 dark:bg-gray-950">
+                        <label class="flex items-center gap-2 rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 px-3 py-2.5 transition-all focus-within:border-indigo-500 focus-within:ring-4 focus-within:ring-indigo-500/20">
                             <MagnifyingGlassIcon class="h-4 w-4 text-gray-400" />
                             <input
                                 v-model="query"
@@ -380,24 +385,24 @@ onUnmounted(() => {
                         </label>
                     </div>
 
-                    <div class="max-h-[620px] overflow-y-auto p-2">
+                    <div class="max-h-[620px] overflow-y-auto p-2 space-y-0.5">
                         <button
                             v-for="employee in filteredEmployees"
                             :key="employee.id"
                             type="button"
                             :class="[
-                                'flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left transition',
+                                'flex w-full items-center gap-3 rounded-xl px-3 py-3 text-left transition-all duration-200',
                                 selectedEmployee?.id === employee.id
-                                    ? 'bg-gray-950 text-white shadow-sm dark:bg-white dark:text-gray-950'
+                                    ? 'bg-gradient-to-r from-indigo-500 to-purple-600 text-white shadow-md'
                                     : 'text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800',
                             ]"
                             @click="selectedEmployeeId = employee.id"
                         >
                             <div
                                 :class="[
-                                    'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl',
+                                    'flex h-10 w-10 shrink-0 items-center justify-center rounded-xl transition-all',
                                     selectedEmployee?.id === employee.id
-                                        ? 'bg-white/15 text-white dark:bg-gray-950/10 dark:text-gray-950'
+                                        ? 'bg-white/20 text-white'
                                         : 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400',
                                 ]"
                             >
@@ -405,12 +410,7 @@ onUnmounted(() => {
                             </div>
                             <div class="min-w-0 flex-1">
                                 <p class="truncate text-sm font-semibold">{{ employee.full_name }}</p>
-                                <p
-                                    :class="[
-                                        'mt-0.5 truncate text-xs',
-                                        selectedEmployee?.id === employee.id ? 'text-white/70 dark:text-gray-600' : 'text-gray-500 dark:text-gray-400',
-                                    ]"
-                                >
+                                <p :class="['mt-0.5 truncate text-xs', selectedEmployee?.id === employee.id ? 'text-white/70' : 'text-gray-500 dark:text-gray-400']">
                                     {{ employee.position || 'Karyawan' }}<span v-if="employee.department"> - {{ employee.department }}</span>
                                 </p>
                             </div>
@@ -423,21 +423,23 @@ onUnmounted(() => {
                     </div>
                 </aside>
 
+                <!-- Main QR Area -->
                 <main
                     :class="[
-                        'w-full rounded-2xl border border-gray-200 bg-white shadow-sm dark:border-gray-800 dark:bg-gray-900',
+                        'w-full rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 shadow-sm',
                         isEmployeeMode ? 'max-w-xl p-4 sm:p-6 lg:max-w-5xl lg:p-4' : 'p-5 lg:p-6',
                     ]"
                 >
                     <div v-if="selectedEmployee" :class="isEmployeeMode ? 'space-y-5 lg:space-y-3' : 'space-y-6'">
+                        <!-- Employee Header -->
                         <div
                             :class="[
-                                'flex flex-col gap-4 border-b border-gray-100 pb-5 dark:border-gray-800',
+                                'flex flex-col gap-4 border-b border-gray-100 dark:border-gray-800 pb-5',
                                 isEmployeeMode ? 'items-center text-center lg:flex-row lg:justify-between lg:pb-3 lg:text-left' : 'md:flex-row md:items-center md:justify-between',
                             ]"
                         >
                             <div :class="['flex gap-4', isEmployeeMode ? 'flex-col items-center lg:flex-row' : 'items-center']">
-                                <div class="flex h-14 w-14 items-center justify-center rounded-2xl bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300 lg:h-10 lg:w-10 lg:rounded-xl">
+                                <div class="flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white shadow-lg shadow-indigo-500/25 lg:h-10 lg:w-10 lg:rounded-xl">
                                     <span class="text-lg font-semibold lg:text-base">{{ selectedEmployee.full_name?.charAt(0) }}</span>
                                 </div>
                                 <div>
@@ -455,7 +457,7 @@ onUnmounted(() => {
                             <div :class="['flex flex-col gap-3', isEmployeeMode ? 'w-full items-stretch sm:w-auto sm:items-end' : 'items-start md:items-end']">
                                 <div
                                     v-if="isEmployeeMode"
-                                    class="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-center dark:border-gray-800 dark:bg-gray-950 sm:w-auto sm:min-w-40 sm:text-right lg:px-3 lg:py-2"
+                                    class="w-full rounded-xl border border-gray-200 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/30 px-4 py-3 text-center sm:w-auto sm:min-w-40 sm:text-right lg:px-3 lg:py-2"
                                 >
                                     <p class="text-xs font-medium text-gray-400">Waktu Saat Ini</p>
                                     <p class="mt-1 whitespace-nowrap text-lg font-semibold tabular-nums tracking-tight text-gray-950 dark:text-white lg:text-base">
@@ -468,7 +470,7 @@ onUnmounted(() => {
                                     v-if="isOperationalHours"
                                     type="button"
                                     :class="[
-                                        'inline-flex items-center justify-center gap-2 rounded-xl border border-gray-200 px-4 py-2.5 text-sm font-semibold text-gray-700 transition hover:bg-gray-50 disabled:opacity-60 dark:border-gray-800 dark:text-gray-200 dark:hover:bg-gray-800',
+                                        'inline-flex items-center justify-center gap-2 rounded-xl border border-gray-200 dark:border-gray-800 px-4 py-2.5 text-sm font-semibold text-gray-700 dark:text-gray-200 transition-all hover:bg-gray-50 dark:hover:bg-gray-800 hover:shadow-md disabled:opacity-60 active:scale-[0.98]',
                                         isEmployeeMode ? 'w-full sm:w-auto lg:px-3 lg:py-2' : '',
                                     ]"
                                     :disabled="refreshing"
@@ -480,10 +482,11 @@ onUnmounted(() => {
                             </div>
                         </div>
 
+                        <!-- Outside Operational Hours -->
                         <div
                             v-if="!isOperationalHours"
                             :class="[
-                                'rounded-2xl border border-gray-200 bg-gray-50 px-6 py-8 text-center dark:border-gray-800 dark:bg-gray-950',
+                                'rounded-2xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 px-6 py-8 text-center',
                                 isEmployeeMode ? 'mx-auto max-w-2xl lg:px-6 lg:py-8' : '',
                             ]"
                         >
@@ -494,7 +497,7 @@ onUnmounted(() => {
                             <p class="mx-auto mt-2 max-w-md text-sm leading-6 text-gray-500 dark:text-gray-400">
                                 QR absensi dan pengajuan kendala absen hanya tersedia pada jam operasional.
                             </p>
-                            <div class="mt-5 inline-flex flex-col gap-1 rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm dark:border-gray-800 dark:bg-gray-900">
+                            <div class="mt-5 inline-flex flex-col gap-1 rounded-xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 px-4 py-3 text-sm">
                                 <span class="text-xs font-medium text-gray-400">Jam operasional</span>
                                 <span class="font-semibold text-gray-900 dark:text-white">{{ operationalHoursLabel }}</span>
                                 <span v-if="nextOperationalStartLabel" class="text-xs text-gray-500 dark:text-gray-400">
@@ -503,10 +506,11 @@ onUnmounted(() => {
                             </div>
                         </div>
 
+                        <!-- Manual Attendance Status -->
                         <div
                             v-if="isOperationalHours && canUseManualAttendance && manualStatusMessage"
                             :class="[
-                                'rounded-2xl border border-gray-200 bg-gray-50 px-5 py-4 dark:border-gray-800 dark:bg-gray-950',
+                                'rounded-2xl border border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-950 px-5 py-4',
                                 isEmployeeMode ? 'mx-auto max-w-md lg:max-w-none lg:px-4 lg:py-2.5' : '',
                             ]"
                         >
@@ -524,22 +528,28 @@ onUnmounted(() => {
                             </div>
                         </div>
 
+                        <!-- QR Active Banner -->
                         <div
                             v-if="isOperationalHours"
-                            class="flex flex-col gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-center text-sm text-emerald-800 dark:border-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-200 sm:flex-row sm:items-center sm:justify-between sm:text-left"
+                            class="flex flex-col gap-2 rounded-2xl bg-gradient-to-r from-emerald-500/10 to-teal-500/10 dark:from-emerald-500/5 dark:to-teal-500/5 border border-emerald-200 dark:border-emerald-900 px-4 py-3 text-center text-sm text-emerald-800 dark:text-emerald-200 sm:flex-row sm:items-center sm:justify-between sm:text-left"
                         >
-                            <span class="font-semibold">QR aktif selama jam operasional</span>
+                            <span class="font-semibold">
+                                <span class="w-2 h-2 rounded-full bg-emerald-500 inline-block mr-2 animate-pulse-subtle" />
+                                QR aktif selama jam operasional
+                            </span>
                             <span class="font-medium tabular-nums">{{ countdownText }}</span>
                         </div>
 
-                        <p v-if="refreshError" class="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/30 dark:text-red-200">
+                        <p v-if="refreshError" class="rounded-xl border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-950/30 px-4 py-3 text-sm text-red-700 dark:text-red-200">
                             {{ refreshError }}
                         </p>
 
+                        <!-- QR Cards -->
                         <div v-if="isOperationalHours" :class="['grid gap-4', isEmployeeMode ? 'justify-items-center lg:grid-cols-2 lg:items-stretch lg:gap-4' : 'gap-5 xl:grid-cols-2']">
+                            <!-- Clock In QR -->
                             <article
                                 :class="[
-                                    'w-full rounded-2xl border border-emerald-200 bg-emerald-50/60 p-4 dark:border-emerald-900 dark:bg-emerald-950/20 sm:p-5',
+                                    'w-full rounded-2xl border border-emerald-200 dark:border-emerald-900 bg-gradient-to-br from-emerald-50/60 to-transparent dark:from-emerald-950/20 p-4 sm:p-5',
                                     isEmployeeMode ? 'max-w-md lg:max-w-none lg:p-4' : '',
                                 ]"
                             >
@@ -548,21 +558,22 @@ onUnmounted(() => {
                                         <p class="text-xs font-semibold uppercase tracking-wide text-emerald-600 dark:text-emerald-300">Clock In</p>
                                         <h3 class="mt-1 text-lg font-semibold text-gray-950 dark:text-white">Absen Masuk</h3>
                                     </div>
-                                    <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-600 text-white">
+                                    <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 text-white shadow-md">
                                         <ArrowDownIcon class="h-5 w-5" />
                                     </div>
                                 </div>
 
-                                <div class="flex justify-center rounded-2xl bg-white p-4 shadow-inner ring-1 ring-emerald-100 dark:bg-gray-950 dark:ring-emerald-900 sm:p-5 lg:p-3">
+                                <div class="flex justify-center rounded-2xl bg-white dark:bg-gray-950 p-4 shadow-inner ring-1 ring-emerald-100 dark:ring-emerald-900 sm:p-5 lg:p-3">
                                     <div class="max-w-full overflow-hidden">
                                         <QrCode :text="selectedEmployee.qr_in_url" :size="qrCanvasSize" />
                                     </div>
                                 </div>
                             </article>
 
+                            <!-- Clock Out QR -->
                             <article
                                 :class="[
-                                    'w-full rounded-2xl border border-rose-200 bg-rose-50/60 p-4 dark:border-rose-900 dark:bg-rose-950/20 sm:p-5',
+                                    'w-full rounded-2xl border border-rose-200 dark:border-rose-900 bg-gradient-to-br from-rose-50/60 to-transparent dark:from-rose-950/20 p-4 sm:p-5',
                                     isEmployeeMode ? 'max-w-md lg:max-w-none lg:p-4' : '',
                                 ]"
                             >
@@ -571,12 +582,12 @@ onUnmounted(() => {
                                         <p class="text-xs font-semibold uppercase tracking-wide text-rose-600 dark:text-rose-300">Clock Out</p>
                                         <h3 class="mt-1 text-lg font-semibold text-gray-950 dark:text-white">Absen Pulang</h3>
                                     </div>
-                                    <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-rose-600 text-white">
+                                    <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-rose-500 to-pink-600 text-white shadow-md">
                                         <ArrowUpIcon class="h-5 w-5" />
                                     </div>
                                 </div>
 
-                                <div v-if="showClockOut" class="flex justify-center rounded-2xl bg-white p-4 shadow-inner ring-1 ring-rose-100 dark:bg-gray-950 dark:ring-rose-900 sm:p-5 lg:p-3">
+                                <div v-if="showClockOut" class="flex justify-center rounded-2xl bg-white dark:bg-gray-950 p-4 shadow-inner ring-1 ring-rose-100 dark:ring-rose-900 sm:p-5 lg:p-3">
                                     <div class="max-w-full overflow-hidden">
                                         <QrCode :text="selectedEmployee.qr_out_url" :size="qrCanvasSize" />
                                     </div>
@@ -585,7 +596,7 @@ onUnmounted(() => {
                                 <div
                                     v-else
                                     :class="[
-                                        'flex flex-col items-center justify-center rounded-2xl border border-dashed border-rose-200 bg-white/70 p-6 text-center dark:border-rose-900 dark:bg-gray-950/70',
+                                        'flex flex-col items-center justify-center rounded-2xl border border-dashed border-rose-200 bg-white/70 dark:bg-gray-950/70 p-6 text-center',
                                         isEmployeeMode ? 'min-h-[250px] lg:min-h-[220px] lg:p-4' : 'min-h-[290px]',
                                     ]"
                                 >
@@ -598,10 +609,11 @@ onUnmounted(() => {
                             </article>
                         </div>
 
+                        <!-- Manual Attendance CTA -->
                         <section
                             v-if="canUseManualAttendance"
                             :class="[
-                                'w-full rounded-2xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-800 dark:bg-gray-950 sm:p-5',
+                                'w-full rounded-2xl border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950 p-4 shadow-sm sm:p-5',
                                 isEmployeeMode ? 'mx-auto max-w-md lg:max-w-none lg:p-4' : '',
                             ]"
                         >
@@ -625,7 +637,7 @@ onUnmounted(() => {
                                 <button
                                     type="button"
                                     :class="[
-                                        'inline-flex items-center justify-center rounded-xl bg-gray-950 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-gray-800 disabled:cursor-not-allowed disabled:opacity-60 dark:bg-white dark:text-gray-950 dark:hover:bg-gray-100',
+                                        'inline-flex items-center justify-center rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 px-4 py-2.5 text-sm font-semibold text-white shadow-md transition-all hover:shadow-lg hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-60 active:scale-[0.98]',
                                         isEmployeeMode ? 'w-full sm:w-auto lg:px-3 lg:py-2' : '',
                                     ]"
                                     :disabled="Boolean(pendingManualRequest)"

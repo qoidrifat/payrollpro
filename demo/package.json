@@ -1,0 +1,29 @@
+{
+  "name": "payrollpro-demo",
+  "version": "1.0.0",
+  "description": "Automated demo recording system for PayrollPro",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "record": "node scripts/demo.js",
+    "record:employee": "node scripts/demo-employee.js",
+    "render": "node scripts/render.js",
+    "render:employee": "node scripts/render.js --employee",
+    "voice": "node scripts/generate-voice.js",
+    "narration": "node scripts/build-narration.js",
+    "narration:employee": "node scripts/build-narration.js --employee",
+    "bgm": "node scripts/generate-bgm.js",
+    "demo": "npm run record && npm run narration && npm run bgm && npm run render",
+    "demo:employee": "npm run record:employee && npm run narration:employee && npm run bgm && npm run render:employee",
+    "demo:record": "npm run record",
+    "demo:render": "npm run render",
+    "demo:voice": "npm run voice",
+    "install:playwright": "npx playwright install chromium",
+    "install:ffmpeg": "echo 'Please install FFmpeg from https://ffmpeg.org/download.html and add it to your PATH'"
+  },
+  "dependencies": {
+    "msedge-tts": "^2.0.7",
+    "playwright": "^1.61.0",
+    "say": "^0.16.0"
+  }
+}

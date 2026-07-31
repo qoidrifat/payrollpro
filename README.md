@@ -1,326 +1,274 @@
-<h1 align="center">Project-KP</h1>
+<div align="center">
 
-<p align="center">
-  Sistem HR, absensi, payroll, dan status operasional untuk perusahaan Indonesia.
-</p>
+# 💼 PayrollPro
 
-<p align="center">
-  <img alt="Laravel" src="https://img.shields.io/badge/Laravel-12-FF2D20?logo=laravel&logoColor=white">
-  <img alt="PHP" src="https://img.shields.io/badge/PHP-8.2%2B-777BB4?logo=php&logoColor=white">
-  <img alt="Vue" src="https://img.shields.io/badge/Vue-3-4FC08D?logo=vue.js&logoColor=white">
-  <img alt="Inertia" src="https://img.shields.io/badge/Inertia-2-9553E9">
-  <img alt="Tailwind CSS" src="https://img.shields.io/badge/Tailwind_CSS-3-38BDF8?logo=tailwindcss&logoColor=white">
-  <img alt="Tests" src="https://img.shields.io/badge/tests-229_passing-16A34A">
-</p>
+**A modern HR, attendance & payroll management system for Indonesian companies**
 
-## Ringkasan
+Built with Laravel, Vue 3 and Inertia.js — covering employee management, attendance (QR & mobile), BPJS, PPh 21, payslips, reports, and a self-service employee portal.
 
-Project-KP adalah aplikasi Laravel + Vue/Inertia untuk mengelola data karyawan, absensi, komponen gaji, pemrosesan payroll, slip gaji, laporan, employee self-service, dan status layanan. Sistem ini dirancang untuk kebutuhan HR/payroll lokal Indonesia, termasuk BPJS, PPh21, PTKP, role-based access, audit trail, dan data dummy realistis untuk demo.
+[![Laravel](https://img.shields.io/badge/Laravel-12-FF2D20?style=for-the-badge&logo=laravel&logoColor=white)](https://laravel.com)
+[![PHP](https://img.shields.io/badge/PHP-8.2%2B-777BB4?style=for-the-badge&logo=php&logoColor=white)](https://php.net)
+[![Vue.js](https://img.shields.io/badge/Vue-3-4FC08D?style=for-the-badge&logo=vue.js&logoColor=white)](https://vuejs.org)
+[![Inertia.js](https://img.shields.io/badge/Inertia.js-2-9553E9?style=for-the-badge)](https://inertiajs.com)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3-38BDF8?style=for-the-badge&logo=tailwindcss&logoColor=white)](https://tailwindcss.com)
 
-Project ini dikembangkan sebagai tugas magang di PT. Maqna Tech Lab, perusahaan teknologi yang berbasis di Bangkalan, Jawa Timur.
+[![CI Status](https://img.shields.io/github/actions/workflow/status/qoidrifat/payrollpro/ci.yml?style=flat-square&label=CI&logo=github)](https://github.com/qoidrifat/payrollpro/actions)
+[![Tests](https://img.shields.io/badge/tests-262%20passing-16A34A?style=flat-square&logo=phpunit)](https://github.com/qoidrifat/payrollpro/actions)
+[![Coverage](https://img.shields.io/badge/coverage-%E2%89%A520%25-4ade80?style=flat-square)](https://github.com/qoidrifat/payrollpro/actions)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=flat-square)](https://opensource.org/licenses/MIT)
 
-Repository saat ini sudah berisi implementasi aplikasi yang cukup luas: service layer, action classes, repository pattern, model multi-tenant, queue jobs, scheduled commands, CI, dan test suite backend.
+**Production-grade architecture · Clean code · Tested · CI-ready**
 
-## Status Sistem Saat Ini
+</div>
 
-| Area | Kondisi |
+---
+
+## ✨ Overview
+
+Managing HR and payroll for an Indonesian company means dealing with a lot of local complexity — **BPJS Kesehatan**, **BPJS Ketenagakerjaan**, **PPh 21**, **PTKP**, attendance policies, and monthly payroll runs. Most small teams still do this in spreadsheets.
+
+**PayrollPro** is an open-source answer to that problem. It combines a complete HR back office with a **self-service employee portal** and a **public status page**, wrapped in a modern, responsive UI with light & dark mode.
+
+Whether you're an HR admin processing payroll or an employee checking your payslip from a phone, everything lives in one clean, fast application.
+
+---
+
+## 🚀 Features
+
+| Module | Highlights |
 | --- | --- |
-| Backend | Laravel 12, PHP 8.2+, Inertia server adapter, Breeze auth, Sanctum, Pulse, Sentry, Spatie Permission |
-| Frontend | Vue 3, Inertia 2, Tailwind CSS 3, Vite 7, ApexCharts, Heroicons |
-| Database | Migration untuk users, employees, attendances, payroll, payslips, settings, approvals, leave/overtime, shift, status page, Pulse |
-| Runtime | Queue, scheduler, PDF generation, Excel export, activity logging |
-| Testing | `229 passed`, `436 assertions` via `php artisan test` |
-| CI | GitHub Actions untuk lint, test, frontend build, dan security audit |
-| Dokumentasi | `README.md` sebagai dokumentasi utama, `docs/mobile-api.yaml` untuk spesifikasi API mobile |
+| **Dashboard** | Payroll, attendance, employee & operational status overview with charts |
+| **Employees** | CRUD, Excel import/export, soft deletes, tax/BPJS/bank identity, encrypted PII |
+| **Attendance** | Manual entry, **QR clock-in/out**, mobile API with GPS/geofence & offline sync |
+| **Payroll** | Payroll runs, salary components, BPJS, PPh 21, PTKP, proration, payslip PDF |
+| **Reports** | Payroll, tax & attendance reports with Excel export |
+| **Employee Portal** | Self-service attendance history, payslips, tax info & leave requests |
+| **Leave & Overtime** | Request → approval workflow with notifications |
+| **Status Page** | Public service status, health API, incidents & maintenance windows |
+| **Administration** | Settings, activity log, role & permission management, API docs |
+| **Security** | RBAC, encrypted sensitive fields, CSP headers, rate limiting, audit trails |
+| **Monitoring** | Laravel Pulse dashboards + scheduled maintenance commands |
 
-## Analisis Sistem
+---
 
-### 1. Domain dan modul
+## 🏗️ Technology Stack
 
-Sistem terbagi ke dalam beberapa domain utama:
-
-- Employee management: data karyawan, status kerja, identitas pajak/BPJS, rekening bank, import/export.
-- Attendance: absensi manual, QR signed route, mobile API, GPS/geofence, offline sync, bulk attendance.
-- Payroll: payroll run, komponen gaji, BPJS, PPh21, PTKP, lembur, payslip PDF, Excel export.
-- Approval dan notification: approval chain, native database notifications, audit event.
-- Employee portal: dashboard karyawan, riwayat absensi, payroll, pajak, dan pengajuan cuti.
-- System status: public status page, health API, incident management, maintenance schedule.
-- Administration: settings, activity log, developer API docs, Pulse dashboard.
-
-### 2. Arsitektur aplikasi
-
-Struktur aplikasi sudah lebih maju dari scaffold Laravel standar:
-
-- `app/Actions`: orchestration layer untuk workflow penting seperti payroll, attendance, approval, dan employee import.
-- `app/Services`: business logic utama, termasuk kalkulasi payroll, pajak, BPJS, geofence, anomaly detection, status service, dan incident lifecycle.
-- `app/Repositories`: interface dan implementasi Eloquent untuk employee, payroll, dan attendance.
-- `app/Models`: model Eloquent untuk core HR/payroll, approval, status page, shift, leave/overtime, BPJS, dan tax config.
-- `app/Policies`: authorization policy untuk resource utama.
-- `app/Http/Middleware`: tenant resolution, role middleware case-insensitive, CSP, local-only route, dan signed employee validation.
-
-Secara desain, pemisahan controller, action, service, repository, policy, dan model sudah membantu menjaga controller tetap berperan sebagai HTTP layer, sementara aturan bisnis berada di service/action.
-
-### 3. Keamanan dan kontrol akses
-
-Fitur keamanan yang sudah terlihat di codebase:
-
-- Role-based access memakai Spatie Permission.
-- Role middleware mendukung case-insensitive role dan pemisahan role dengan pipe/comma.
-- Field sensitif employee dienkripsi dengan Laravel encrypted cast: NIK, NPWP, rekening bank, BPJS Kesehatan, dan BPJS Ketenagakerjaan.
-- CSP dan security headers aktif di non-local/non-testing environment.
-- Rate limiter untuk demo login, QR attendance, dan attendance API.
-- Failed login dan password reset dicatat melalui listener.
-- Sanctum token expiration dikonfigurasi melalui `SANCTUM_TOKEN_EXPIRATION`, default 43200 menit atau 30 hari.
-
-Catatan: `.env.example` mengaktifkan Redis untuk session, cache, dan queue. Untuk developer lokal tanpa Redis, ubah ke driver database/file/sync sesuai kebutuhan.
-
-### 4. Data dan seeding
-
-`DatabaseSeeder` menjalankan:
-
-- `AdminUserSeeder`
-- `BpjsConfigSeeder`
-- `Pph21ConfigSeeder`
-- `PtkpConfigSeeder`
-- `DummyDataSeeder`
-- `EmployeeUserSeeder`
-- `AttendanceDataSeeder`
-
-Data dummy mencakup 8 karyawan, salary components, payroll Januari-Mei 2026, dan absensi Januari-Mei 2026 berdasarkan hari kerja, hari libur, cuti, sakit, WFO/WFH/remote, dan GPS kantor Bangkalan.
-
-### 5. Kualitas dan risiko teknis
-
-Yang sudah kuat:
-
-- Test suite luas untuk service, policy, auth, attendance, employee, payroll, portal, reports, settings, dan payslip.
-- Struktur domain cukup modular.
-- CI sudah mencakup PHP syntax, Pint, Composer audit, PHPUnit, frontend build, dan file secret check.
-- Sensitive employee fields sudah terenkripsi.
-- PDF generation punya patch khusus untuk menghindari masalah Imagick/Dompdf di Windows.
-
-Yang perlu diperhatikan:
-
-- Ada satu warning PHPUnit: metadata di doc-comment akan deprecated di PHPUnit 12. Ubah annotation test terkait menjadi attribute PHP.
-- Ada dua workflow GitHub Actions (`ci.yml` dan `tests.yml`) dengan versi PHP berbeda. Ini bisa dipertahankan, tapi lebih rapi jika distandarkan.
-- File lokal seperti `.env`, `database/database.sqlite`, `.phpunit.result.cache`, `bash.exe.stackdump`, `.gstack/`, dan `.claude/settings.local.json` tidak boleh masuk GitHub.
-
-## Fitur Utama
-
-| Modul | Fitur |
+| Layer | Technologies |
 | --- | --- |
-| Dashboard | Ringkasan payroll, attendance, employee, report, dan status operasional |
-| Employee | CRUD karyawan, import/export Excel, soft delete, data pajak/BPJS/bank |
-| Attendance | Manual attendance, QR signed route, mobile clock-in/out, GPS, offline sync, bulk store |
-| Payroll | Payroll run, salary components, BPJS, PPh21, PTKP, approval, payslip |
-| Reports | Payroll report, tax report, attendance report, export |
-| Portal | Dashboard karyawan, attendance history, payroll history, tax info, leave request |
-| Status Page | Public status, health API, service management, incident timeline, maintenance |
-| Security | RBAC, encrypted employee fields, CSP headers, rate limit, audit/security logging |
-| Monitoring | Laravel Pulse dashboard dan scheduled maintenance commands |
+| **Backend** | Laravel 12, PHP 8.2+, Breeze, Sanctum, Pulse, Sentry, Spatie Permission |
+| **Frontend** | Vue 3, Inertia.js 2, Tailwind CSS 3, Vite 7, ApexCharts, Heroicons |
+| **Database** | MySQL 8 · PostgreSQL / Supabase · SQLite |
+| **Export** | DomPDF (payslips), Laravel Excel, PHPWord |
+| **Runtime** | Queue workers, scheduler, Redis-ready configuration |
+| **CI/CD** | GitHub Actions (lint, tests, build, security audit, deploy) |
+| **Testing** | PHPUnit 11 — 229 tests, 436 assertions |
 
-## Tech Stack
+---
 
-| Layer | Teknologi |
-| --- | --- |
-| Backend | Laravel 12, PHP 8.2+, Breeze, Sanctum, Pulse, Sentry, Spatie Permission |
-| Frontend | Vue 3, Inertia 2, Tailwind CSS 3, Vite 7 |
-| UI/Data | ApexCharts, Heroicons, QRCode |
-| Export | DomPDF, Laravel Excel |
-| Runtime | Queue worker, scheduler, Redis-ready config |
-| CI | GitHub Actions |
-| Test | PHPUnit 11 |
+## 🏛️ System Architecture
 
-## Struktur Project
+```mermaid
+flowchart TB
+    subgraph Client
+        A[Web Browser<br/>Vue 3 + Inertia.js]
+        B[Mobile App<br/>Sanctum API]
+    end
 
-```text
-project-kp/
-|-- app/
-|   |-- Actions/          Workflow orchestration
-|   |-- DTOs/             Data transfer objects
-|   |-- Enums/            Type-safe domain constants
-|   |-- Events/           Domain events
-|   |-- Exports/          Excel export classes
-|   |-- Http/             Controllers, requests, middleware, resources
-|   |-- Jobs/             Queue jobs
-|   |-- Listeners/        Event listeners
-|   |-- Models/           Eloquent models
-|   |-- Notifications/    Notification classes
-|   |-- Policies/         Authorization policies
-|   |-- Repositories/     Repository interfaces and Eloquent implementations
-|   |-- Scopes/           Tenant/global scopes
-|   |-- Services/         Business logic services
-|   `-- Traits/           Shared model behavior
-|-- database/
-|   |-- migrations/
-|   |-- factories/
-|   `-- seeders/
-|-- docs/
-|-- resources/
-|   |-- js/
-|   `-- views/
-|-- routes/
-|-- tests/
-`-- .github/workflows/
+    subgraph Server
+        C[Laravel 12 HTTP Kernel]
+        D[Controllers]
+        E[Actions Layer]
+        F[Services Layer]
+        G[Repositories]
+        H[Eloquent Models]
+    end
+
+    subgraph Storage
+        I[(MySQL / PostgreSQL<br/>/ SQLite)]
+        J[(Redis<br/>Cache · Queue · Session)]
+    end
+
+    A -->|Inertia Page/Props| C
+    B -->|JSON API + Sanctum| C
+    C --> D --> E --> F --> G --> H
+    H --> I
+    C <--> J
+
+    subgraph Scheduling
+        K[Queue Workers]
+        L[Laravel Scheduler<br/>Backups · Log Purge]
+    end
+    C --> K --> I
+    C --> L
 ```
 
-## Persyaratan
+**Layering rules** — controllers stay as thin HTTP adapters; business rules live in `Services`; multi-step workflows are orchestrated in `Actions`; data access goes through `Repositories`; domain constants are type-safe `Enums`.
 
-- PHP 8.2 atau lebih baru
-- Composer 2
-- Node.js 20 dan npm
-- MySQL 8, PostgreSQL/Supabase, atau SQLite untuk development
-- Redis jika memakai konfigurasi default `.env.example`
-- PHP extensions: `bcmath`, `ctype`, `dom`, `fileinfo`, `gd`, `json`, `mbstring`, `openssl`, `pdo`, `pdo_mysql`, `pdo_pgsql` atau `pdo_sqlite`, `tokenizer`, `xml`, `zip`
+---
 
-## Instalasi Lokal
+## 📸 Screenshots
+
+<div align="center">
+
+### Admin Dashboard
+
+![Admin Dashboard](docs/images/dashboard.png)
+
+### Payroll Processing
+
+![Payroll](docs/images/payroll.png) ![Payroll Detail](docs/images/payroll-detail.png)
+
+### Attendance & My QR
+
+![Attendance](docs/images/attendance.png) ![My QR](docs/images/my-qr.png)
+
+### Employees & Reports
+
+![Employees](docs/images/employees.png) ![Reports](docs/images/reports.png)
+
+### Employee Portal (Self-Service)
+
+![Portal Dashboard](docs/images/portal-dashboard.png) ![Portal Attendance](docs/images/portal-attendance.png)
+
+### Dark Mode
+
+![Dashboard Dark Mode](docs/images/dashboard-dark.png)
+
+### Responsive / Mobile
+
+![Mobile Dashboard](docs/images/mobile-dashboard.png)
+
+</div>
+
+> Screenshots are captured with a realistic seeded dataset (8 employees, 5 payroll runs, 760 attendance records). The capture tooling lives in [`scripts/capture-screenshots.mjs`](scripts/capture-screenshots.mjs) and [`scripts/capture-mobile.mjs`](scripts/capture-mobile.mjs).
+
+---
+
+## 📦 Installation
+
+### Requirements
+
+- **PHP 8.2+** with `bcmath`, `ctype`, `dom`, `fileinfo`, `gd`, `json`, `mbstring`, `openssl`, `pdo`, `pdo_mysql`/`pdo_pgsql`/`pdo_sqlite`, `tokenizer`, `xml`, `zip`
+- **Composer 2**
+- **Node.js 20+** & npm
+- **MySQL 8**, **PostgreSQL/Supabase**, or **SQLite**
+
+### Quick Start
 
 ```bash
-git clone https://github.com/USERNAME/project-kp.git
-cd project-kp
-
+# 1. Clone & install dependencies
+git clone https://github.com/qoidrifat/payrollpro.git
+cd payrollpro
 composer install
 npm install
 
+# 2. Configure environment
 cp .env.example .env
 php artisan key:generate
-```
 
-### Opsi database SQLite
-
-```bash
+# 3. Choose a database — SQLite (simplest):
 touch database/database.sqlite
-```
+#    then set DB_CONNECTION=sqlite in .env
+#    — or use MySQL / PostgreSQL (see .env.example)
 
-Pastikan `.env` memakai:
-
-```env
-DB_CONNECTION=sqlite
-```
-
-### Opsi database MySQL
-
-```env
-DB_CONNECTION=mysql
-DB_HOST=127.0.0.1
-DB_PORT=3306
-DB_DATABASE=project_kp
-DB_USERNAME=root
-DB_PASSWORD=
-```
-
-### Opsi database Supabase/PostgreSQL
-
-```env
-DB_CONNECTION=pgsql
-DB_HOST=db.your-project-ref.supabase.co
-DB_PORT=5432
-DB_DATABASE=postgres
-DB_USERNAME=postgres
-DB_PASSWORD=your-supabase-database-password
-DB_SSLMODE=require
-```
-
-### Queue, cache, dan session lokal
-
-Jika Redis belum tersedia, gunakan konfigurasi lokal yang lebih sederhana:
-
-```env
-SESSION_DRIVER=file
-CACHE_STORE=file
-QUEUE_CONNECTION=database
-```
-
-Lalu jalankan:
-
-```bash
+# 4. Migrate, seed & link storage
 php artisan migrate --seed
 php artisan storage:link
+
+# 5. Build assets & run
 npm run build
+php artisan serve        # → http://127.0.0.1:8000
 ```
 
-## Menjalankan Aplikasi
+### Demo Accounts
 
-Mode development manual:
-
-```bash
-php artisan serve
-php artisan queue:listen --tries=1 --timeout=0
-npm run dev
-```
-
-Atau gunakan script Composer:
-
-```bash
-composer run dev
-```
-
-URL penting:
-
-| URL | Keterangan |
-| --- | --- |
-| `http://localhost:8000` | Landing page |
-| `http://localhost:8000/login` | Login |
-| `http://localhost:8000/demo` | Demo login, local only |
-| `http://localhost:8000/dashboard` | Dashboard setelah login |
-| `http://localhost:8000/status` | Public status page |
-| `http://localhost:8000/api/health` | Health check |
-| `http://localhost:8000/api/status` | Status API |
-| `http://localhost:8000/developer/api-docs` | Dokumentasi API mobile, admin only |
-| `http://localhost:8000/pulse` | Laravel Pulse, admin only |
-
-## Akun Demo
-
-Seeder membuat akun dasar berikut:
+The seeder creates these accounts:
 
 | Role | Email | Password |
 | --- | --- | --- |
 | Admin | `admin@project-kp.test` | `password` |
 | HR | `hr@project-kp.test` | `password` |
+| Employee | `ahmad.fauzi.1@project-kp.test` | `password` |
 
-`EmployeeUserSeeder` juga membuat akun untuk setiap karyawan dummy dengan format:
+> ⚠️ Change these credentials before any public deployment.
 
-```text
-first_name.last_name.employee_id@project-kp.test
+---
+
+## 🧑‍💻 Development
+
+```bash
+# Start everything (server + queue + Vite + logs)
+composer run dev
+
+# Or individually
+php artisan serve
+php artisan queue:listen --tries=1 --timeout=0
+npm run dev
 ```
 
-Contoh yang umum setelah seed awal:
+### Key URLs (local)
 
-| Nama | Email | Password |
-| --- | --- | --- |
-| Ahmad Fauzi | `ahmad.fauzi.1@project-kp.test` | `password` |
-| Rina Kusuma | `rina.kusuma.2@project-kp.test` | `password` |
-| Maya Anggraini | `maya.anggraini.8@project-kp.test` | `password` |
+| URL | Purpose |
+| --- | --- |
+| `/` | Landing page |
+| `/login` | Authentication |
+| `/demo` | One-click demo login (local only) |
+| `/dashboard` | Authenticated dashboard |
+| `/status` | Public status page |
+| `/api/health` | Health check |
+| `/developer/api-docs` | Mobile API documentation (admin) |
+| `/pulse` | Laravel Pulse (admin) |
 
-## Route Utama
+---
 
-Route publik:
+## 📂 Project Structure
 
-- `GET /`
-- `GET /status`
-- `GET /api/health`
-- `GET /api/status`
-- `GET /demo` untuk local/testing
+```text
+payrollpro/
+├── app/
+│   ├── Actions/          # Workflow orchestration (payroll, attendance, approvals)
+│   ├── DTOs/             # Data transfer objects
+│   ├── Enums/            # Type-safe domain constants
+│   ├── Exports/          # Excel export classes
+│   ├── Http/             # Controllers, requests, middleware, resources
+│   ├── Jobs/             # Queue jobs
+│   ├── Listeners/        # Event listeners
+│   ├── Models/           # Eloquent models
+│   ├── Notifications/    # Notification classes
+│   ├── Policies/         # Authorization policies
+│   ├── Repositories/     # Repository interfaces & implementations
+│   ├── Scopes/           # Global scopes
+│   ├── Services/         # Business logic (payroll, tax, BPJS, geofence)
+│   └── Traits/           # Shared model behaviour
+├── bin/                  # Utility scripts (schema export, PDF patch)
+├── config/               # Laravel configuration
+├── database/
+│   ├── factories/
+│   ├── migrations/
+│   └── seeders/
+├── demo/                 # Automated demo-video recording system
+├── docker/               # Docker/nginx configuration
+├── docs/                 # Documentation & API spec
+│   ├── images/           # Screenshots used in this README
+│   ├── reports/          # Engineering audit & feature reports
+│   └── mobile-api.yaml   # OpenAPI spec for the mobile attendance API
+├── lang/                 # Localization files
+├── public/               # Web root (built assets)
+├── resources/
+│   ├── css/
+│   ├── js/               # Vue 3 + Inertia components & pages
+│   └── views/
+├── routes/
+├── supabase/             # Supabase RLS migrations & rollbacks
+├── tests/                # PHPUnit feature & unit tests
+└── .github/workflows/    # CI, tests, security audit
+```
 
-Route authenticated:
+---
 
-- `/dashboard`
-- `/employees`
-- `/attendances`
-- `/salary-config`
-- `/payroll`
-- `/reports/payroll`
-- `/reports/tax`
-- `/reports/attendance`
-- `/leave-requests`
-- `/settings`
-- `/activity-log`
-- `/notifications`
-- `/profile`
-- `/portal/*`
-- `/my-qr`
-- `/pulse`
+## 📡 API
 
-Mobile attendance API:
+PayrollPro exposes a **mobile attendance API** (Sanctum-protected) documented in [`docs/mobile-api.yaml`](docs/mobile-api.yaml) and browsable at `/developer/api-docs`.
 
 | Method | Endpoint | Auth |
 | --- | --- | --- |
@@ -329,135 +277,102 @@ Mobile attendance API:
 | `POST` | `/api/mobile/clock-out` | Sanctum |
 | `POST` | `/api/mobile/sync-offline` | Sanctum |
 
-QR attendance:
+### QR Attendance (signed URLs)
 
-| Method | Endpoint | Catatan |
+| Method | Endpoint | Notes |
 | --- | --- | --- |
 | `GET` | `/scan/in/{employee}` | Signed URL |
 | `GET` | `/scan/out/{employee}` | Signed URL |
 | `POST` | `/scan/clock-in/{employee}` | Authenticated |
 | `POST` | `/scan/clock-out/{employee}` | Authenticated |
 
-## Command Penting
+---
+
+## 🧪 Testing
 
 ```bash
-# Test
-php artisan test
-composer run test
-
-# Build frontend
-npm run build
-
-# Development server
-composer run dev
-
-# Queue worker
-php artisan queue:work --tries=3 --timeout=60
-
-# Scheduler
-php artisan schedule:run
-
-# Clear cache
-php artisan optimize:clear
+composer run test     # or: php artisan test
 ```
 
-Scheduled commands yang sudah terdaftar:
+The suite covers services, policies, auth, attendance, employee management, payroll, the employee portal, reports, settings and payslips — **262 tests / 568 assertions**.
 
-| Command | Jadwal | Fungsi |
-| --- | --- | --- |
-| `PurgeActivityLogs` | Harian 00:00 | Menghapus activity log lama, default 90 hari |
-| `DatabaseBackup` | Harian 02:00 | Backup database dengan retensi 30 hari |
-| `queue:restart` | Setiap jam | Restart worker untuk mengurangi risiko memory leak |
+---
 
-## Testing
+## 🚀 Deployment
 
-Hasil verifikasi lokal terakhir:
-
-```text
-Tests: 229 passed (436 assertions)
-Duration: 12.21s
-```
-
-Catatan test:
-
-- Ada warning PHPUnit 11 tentang metadata doc-comment pada salah satu test. Ini belum menggagalkan test, tetapi sebaiknya diganti ke PHP attribute sebelum upgrade PHPUnit 12.
-- Test mencakup unit service, policy, auth, attendance, employee, employee portal, leave request, payroll, payslip template, report, setting, health endpoint, dan status page.
-
-## CI/CD
-
-Repository memiliki workflow GitHub Actions:
-
-| Workflow | Fungsi |
-| --- | --- |
-| `.github/workflows/ci.yml` | Lint/static check, PHPUnit dengan MySQL, frontend build, security audit |
-| `.github/workflows/tests.yml` | Test dan build tambahan dengan PHP 8.3 |
-
-Saran maintenance: standardisasi versi PHP dan cache strategy jika ingin pipeline lebih konsisten.
-
-## Deployment
-
-### VPS atau server mandiri
+### Docker (recommended)
 
 ```bash
-git pull
+docker compose up -d
+```
+
+A `render.yaml` blueprint is also included for [Render](https://render.com) one-click deployment (Docker provider + health check).
+
+### Manual (VPS / shared hosting)
+
+```bash
 composer install --no-dev --optimize-autoloader
-npm ci
-npm run build
-
+npm ci && npm run build
 php artisan migrate --force
 php artisan storage:link
-
-php artisan config:cache
-php artisan route:cache
-php artisan view:cache
+php artisan config:cache && php artisan route:cache && php artisan view:cache
 ```
 
-Jalankan queue worker dengan Supervisor/systemd:
+Queue worker (Supervisor/systemd):
 
 ```bash
 php artisan queue:work --tries=3 --timeout=60
 ```
 
-Aktifkan scheduler di cron:
+Scheduler (cron):
 
 ```cron
 * * * * * cd /path/to/project && php artisan schedule:run >> /dev/null 2>&1
 ```
 
-### Shared hosting
+Scheduled commands include `DatabaseBackup` (daily 02:00, 30-day retention) and `PurgeActivityLogs` (daily 00:00, 90-day retention).
 
-- Arahkan document root ke folder `public/`.
-- Upload source code tanpa `.env`, `node_modules/`, `vendor/`, `storage/logs/`, dan database lokal.
-- Jalankan `composer install --no-dev` jika tersedia.
-- Build asset di lokal/CI lalu upload `public/build/` jika server tidak mendukung Node.
-- Set `.env` production secara manual di server.
+---
 
-## File yang Tidak Boleh Masuk Git
+## 🗺️ Roadmap
 
-Pastikan file/folder berikut tetap di-ignore:
+- [ ] Email notifications for approval requests & payslips
+- [ ] Scheduled payroll runs
+- [ ] Multi-company / multi-branch support (schema-ready)
+- [ ] Payslip email delivery
+- [ ] PWA offline attendance capture
+- [ ] i18n (Indonesian / English UI switching)
+- [ ] Dark-mode QR scan experience
 
-```text
-.env
-.env.backup
-.env.production
-node_modules/
-vendor/
-public/build/
-public/storage/
-storage/logs/*.log
-database/*.sqlite
-database/*.db
-.phpunit.result.cache
-.gstack/
-.claude/settings.local.json
-bash.exe.stackdump
--w
-```
+---
 
-## Dokumentasi Terkait
+## 🤝 Contributing
 
-- `docs/mobile-api.yaml`
+Contributions are what make the open-source community amazing. Please read the [Contributing Guidelines](CONTRIBUTING.md) and our [Code of Conduct](CODE_OF_CONDUCT.md).
 
-## Lisensi
+1. 🍴 Fork the repository
+2. 🌿 Create a feature branch (`git checkout -b feature/amazing`)
+3. 💾 Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. 📤 Push to the branch (`git push origin feature/amazing`)
+5. 🔀 Open a pull request
 
-Project ini dirilis menggunakan lisensi MIT. Lihat file [LICENSE](https://opensource.org/license/mit) untuk detail lengkap.
+Found a security issue? See [SECURITY.md](SECURITY.md) for our disclosure policy.
+
+---
+
+## 📄 License
+
+Distributed under the **MIT License**. See [LICENSE](LICENSE) for more information.
+
+---
+
+## 👤 Author
+
+**Qoid Rifat** — Full-stack developer building for the Indonesian SaaS ecosystem.
+
+[![GitHub](https://img.shields.io/badge/GitHub-qoidrifat-181717?style=flat-square&logo=github&logoColor=white)](https://github.com/qoidrifat)
+[![Portfolio](https://img.shields.io/badge/Portfolio-PayrollPro-6366F1?style=flat-square)](https://github.com/qoidrifat)
+
+<div align="center">
+  <sub>Built with ❤️ and ☕ — Laravel, Vue & Inertia.</sub>
+</div>

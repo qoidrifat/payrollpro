@@ -6,6 +6,8 @@ Thumbs.db
 .env.backup
 .env.production
 .env.testing
+.env.mysql.local
+.env.*.local
 auth.json
 
 node_modules/
@@ -30,6 +32,10 @@ storage/logs/*.log
 
 .gstack/
 .claude/settings.local.json
+.agents/
+.bob/
+.mcp.json
+skills-lock.json
 
 database/*.sqlite
 database/*.db
@@ -37,13 +43,16 @@ database/*.db
 bash.exe.stackdump
 -w
 
-# Internal planning and audit notes
-/SRS.md
-/new-feature.md
-/next-plan.md
-/plan.md
-/saran.md
-/docs/architecture.md
-/docs/planning-git-bash-ke-github.md
-/docs/role-error-audit-plan.md
-/docs/security-analysis.md
+# Stray shell/Windows artifacts & orphaned SQLite db
+nul
+*.stackdump
+/postgres
+
+# Local archive of stray files moved out of the project root
+/_archive/
+
+# Supabase CLI local state (never commit project refs / versions)
+supabase/.temp/
+
+# InfinityFree shared-hosting configuration (local deployment artifact)
+.htaccess.infinityfree

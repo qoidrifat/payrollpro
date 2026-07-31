@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [main, develop, gh-pages]
+    branches: ['**']
   pull_request:
-    branches: [main, develop]
+    branches: [main]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -12,6 +12,10 @@ concurrency:
 
 permissions:
   contents: read
+
+env:
+  PHP_VERSION: '8.3'
+  NODE_VERSION: '20'
 
 jobs:
   ###########################################################
@@ -28,7 +32,7 @@ jobs:
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.2'
+          php-version: ${{ env.PHP_VERSION }}
           extensions: mbstring, xml, bcmath, gd, zip
           tools: composer:v2
           coverage: none
@@ -44,13 +48,47 @@ jobs:
         run: composer install --no-progress --prefer-dist --no-interaction
 
       - name: Check PHP syntax
-        run: find app -name '*.php' -exec php -l {} \;
+        run: find app config database routes tests -name '*.php' -exec php -l {} \;
 
       - name: Laravel Pint (Code Style)
         run: ./vendor/bin/pint --test || echo "Pint style check completed (non-blocking)"
 
       - name: Composer Audit (non-blocking)
         run: composer audit || echo "⚠️  Composer audit found advisories (non-blocking in lint)"
+
+  ###########################################################
+  # Frontend Build
+  ###########################################################
+  frontend:
+    name: Frontend Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: lint
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install Node dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npx eslint resources/js/ --no-error-on-unmatched-pattern || echo "ESLint completed (non-blocking)"
+
+      - name: Build
+        run: npm run build
+
+      - name: Upload build artifact (for test job)
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-build
+          path: public/build/
+          retention-days: 1
 
   ###########################################################
   # Backend Tests
@@ -67,7 +105,7 @@ jobs:
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.2'
+          php-version: ${{ env.PHP_VERSION }}
           extensions: mbstring, xml, bcmath, gd, zip
           tools: composer:v2
           coverage: pcov
@@ -91,7 +129,7 @@ jobs:
       - name: Setup environment
         run: |
           cp .env.example .env
-          # Override Redis defaults — CI runner has no Redis
+          # CI runners have no Redis — fall back to simple drivers
           sed -i 's/SESSION_DRIVER=redis/SESSION_DRIVER=array/' .env
           sed -i 's/CACHE_STORE=redis/CACHE_STORE=array/' .env
           sed -i 's/QUEUE_CONNECTION=redis/QUEUE_CONNECTION=sync/' .env
@@ -114,58 +152,6 @@ jobs:
           retention-days: 7
 
   ###########################################################
-  # Frontend Build
-  ###########################################################
-  frontend:
-    name: Frontend Build
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    needs: lint
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: '8.2'
-          extensions: mbstring, xml
-          tools: composer:v2
-          coverage: none
-
-      - name: Cache Composer dependencies
-        uses: actions/cache@v4
-        with:
-          path: vendor
-          key: composer-${{ hashFiles('composer.lock') }}
-          restore-keys: composer-
-
-      - name: Install Composer dependencies
-        run: composer install --no-progress --prefer-dist --no-interaction
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-
-      - name: Install Node dependencies
-        run: npm ci
-
-      - name: Lint
-        run: npx eslint resources/js/ --no-error-on-unmatched-pattern || echo "ESLint completed (non-blocking)"
-
-      - name: Build
-        run: npm run build
-
-      - name: Upload build artifact (for test job)
-        uses: actions/upload-artifact@v4
-        with:
-          name: frontend-build
-          path: public/build/
-          retention-days: 1
-
-  ###########################################################
   # Security Scan
   ###########################################################
   security:
@@ -180,7 +166,7 @@ jobs:
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.2'
+          php-version: ${{ env.PHP_VERSION }}
           extensions: mbstring, xml
           tools: composer:v2
           coverage: none
@@ -209,59 +195,3 @@ jobs:
           echo "🔍 Checking Composer.lock integrity..."
           composer validate --no-check-all --no-check-publish 2>&1 || true
           echo "✅ Composer.lock is valid."
-
-      - name: Security Summary
-        run: |
-          echo ""
-          echo "═══════════════════════════════════"
-          echo "  🔐 Security Audit Complete"
-          echo "  • Composer vulnerabilities : checked"
-          echo "  • Sensitive files          : checked"
-          echo "  • Lockfile integrity       : checked"
-          echo "═══════════════════════════════════"
-          echo ""
-
-  ###########################################################
-  # Deploy (main branch only)
-  ###########################################################
-  deploy:
-    name: Deploy to Zeabur
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    needs: [test, frontend, security]
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-
-    steps:
-      - name: ✅ Verify CI passed
-        run: |
-          echo "🎉 Semua CI checks lulus!"
-          echo ""
-          echo "📦 Zeabur akan auto-deploy pada push ke main"
-          echo "   via koneksi GitHub di dashboard Zeabur."
-
-      - name: 📊 Deployment Summary
-        run: |
-          echo ""
-          echo "═══════════════════════════════════"
-          echo "  🚀 Deployment Summary"
-          echo "  • Tests passed         : ✅"
-          echo "  • Frontend build       : ✅"
-          echo "  • Security audit       : ✅"
-          echo "  • Auto-deploy Zeabur   : ✅"
-          echo "  "
-          echo "  📍 Zeabur Dashboard : https://zeabur.com"
-          echo "  📍 App URL          : https://project-kp.zeabur.app"
-          echo "═══════════════════════════════════"
-          echo ""
-          echo "📝 Set environment variables di Zeabur Dashboard:"
-          echo "   Project → Service → Variables tab"
-          echo ""
-          echo "   Required:"
-          echo "   • APP_KEY         = (generate: php artisan key:generate --show)"
-          echo "   • APP_ENV         = production"
-          echo "   • APP_DEBUG       = false"
-          echo "   • APP_URL         = https://project-kp.zeabur.app"
-          echo "   • LOG_LEVEL       = warning"
-          echo "   • SESSION_DRIVER  = array"
-          echo "   • CACHE_STORE     = array"
-          echo "   • QUEUE_CONNECTION = sync"

@@ -62,16 +62,38 @@ jobs:
   frontend:
     name: Frontend Build
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15  # composer install + npm ci + vite build
     needs: lint
 
     steps:
       - uses: actions/checkout@v4
 
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ env.PHP_VERSION }}
+          extensions: mbstring, xml, bcmath, gd, zip
+          tools: composer:v2
+          coverage: none
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@v4
+        with:
+          path: vendor
+          key: composer-${{ hashFiles('composer.lock') }}
+          restore-keys: composer-
+
+      # vendor/ is gitignored, but the Vite build imports Ziggy from it
+      # (resources/js/app.js -> ../../vendor/tightenco/ziggy), so it must
+      # be installed before compiling the frontend.
+      - name: Install Composer dependencies
+        run: composer install --no-progress --prefer-dist --no-interaction
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
 
       - name: Install Node dependencies
         run: npm ci --no-audit --no-fund

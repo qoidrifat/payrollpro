@@ -54,6 +54,9 @@ nul
 # Local banner-generation workspace (design philosophy, fonts, scripts)
 /_banner/
 
+# CI build diagnostic log
+/build.log
+
 # Supabase CLI local state (never commit project refs / versions)
 supabase/.temp/
 

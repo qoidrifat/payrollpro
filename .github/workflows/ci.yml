@@ -72,16 +72,25 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
 
       - name: Install Node dependencies
-        run: npm ci
+        run: npm ci --no-audit --no-fund
 
       - name: Lint
         run: npx eslint resources/js/ --no-error-on-unmatched-pattern || echo "ESLint completed (non-blocking)"
 
-      - name: Build
-        run: npm run build
+      - name: Build (log captured for diagnostics)
+        run: |
+          set -o pipefail
+          npm run build 2>&1 | tee build.log
+
+      - name: Upload build log (on failure)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-log
+          path: build.log
+          retention-days: 7
 
       - name: Upload build artifact (for test job)
         uses: actions/upload-artifact@v4

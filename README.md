@@ -61,7 +61,7 @@ Whether you're an HR admin processing payroll or an employee checking your paysl
 | **Export** | DomPDF (payslips), Laravel Excel, PHPWord |
 | **Runtime** | Queue workers, scheduler, Redis-ready configuration |
 | **CI/CD** | GitHub Actions (lint, tests, build, security audit, deploy) |
-| **Testing** | PHPUnit 11 — 229 tests, 436 assertions |
+| **Testing** | PHPUnit 11 — 262 tests, 568 assertions |
 
 ---
 

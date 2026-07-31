@@ -51,6 +51,9 @@ nul
 # Local archive of stray files moved out of the project root
 /_archive/
 
+# Local banner-generation workspace (design philosophy, fonts, scripts)
+/_banner/
+
 # Supabase CLI local state (never commit project refs / versions)
 supabase/.temp/
 
